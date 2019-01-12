@@ -1,0 +1,35 @@
+---
+apiVersion: sources.eventing.knative.dev/v1alpha1
+kind: ContainerSource
+metadata:
+  name: twitter-test
+  namespace: default
+spec:
+  image: github.com/vaikas-google/twitter/cmd/source
+  sink:
+    apiVersion: serving.knative.dev/v1alpha1
+    kind: Service
+    name: twitter-dumper
+  args:
+    - --query=QUERY
+  env:
+    - name: TWITTER_CONSUMER_KEY
+      valueFrom:
+        secretKeyRef:
+          name: twitter-secret
+          key: consumer-key
+    - name: TWITTER_CONSUMER_SECRET_KEY
+      valueFrom:
+        secretKeyRef:
+          name: twitter-secret
+          key: consumer-secret-key
+    - name: TWITTER_ACCESS_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: twitter-secret
+          key: access-token
+    - name: TWITTER_ACCESS_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: twitter-secret
+          key: access-secret

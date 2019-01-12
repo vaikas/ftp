@@ -1,0 +1,13 @@
+---
+apiVersion: serving.knative.dev/v1alpha1
+kind: Service
+metadata:
+  name: twitter-dumper
+  namespace: default
+spec:
+  runLatest:
+    configuration:
+      revisionTemplate:
+        spec:
+          container:
+            image: us.gcr.io/probable-summer-223122/dumper-7f5613f9bb80bb32915b1c42524e0c11@sha256:7c2d83dc7772a704a742df56106aaf1ea793da090f652e933ae1098b7489adf7
