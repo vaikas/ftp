@@ -51,7 +51,11 @@ func (s *searcher) search() {
 		fmt.Printf("Error executing search %s - %v", resp.Status, err)
 	}
 	for _, t := range search.Statuses {
-		s.handler(&t)
+		handlerErr := s.handler(&t)
+		if handlerErr != nil {
+			fmt.Printf("Failed to post: %s", err)
+			break
+		}
 		if t.ID > s.sinceID {
 			s.sinceID = t.ID
 		}
