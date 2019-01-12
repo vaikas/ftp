@@ -78,6 +78,8 @@ sed "s/QUERY/yourquerystring/g" | kubectl apply -f -
 
 ## Look for the results of your function execution
 
+You might have to wait some seconds while the elves are busily fetching your tweets, be patient...
+
 ```shell
 kubectl -l 'serving.knative.dev/service=twitter-dumper' logs -c user-container
 ```
