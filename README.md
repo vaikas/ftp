@@ -65,21 +65,21 @@ The source expects you to specify a query string that tells what to search for i
 of tweets. For example, if you wanted to look for `knative`, you'd do:
 
 ```shell
-curl https://raw.githubusercontent.com/vaikas-google/twitter/master/config/.yaml | \
+curl https://raw.githubusercontent.com/vaikas-google/twitter/master/config/search-source.yaml | \
 sed "s/QUERY/knative/g" | kubectl apply -f -
 ```
 
 if you want to search for something else, replace knative with the query string you want
 to look for.
 ```shell
-curl https://raw.githubusercontent.com/vaikas-google/twitter/master/config/release.yaml | \
+curl https://raw.githubusercontent.com/vaikas-google/twitter/master/config/search-source.yaml | \
 sed "s/QUERY/yourquerystring/g" | kubectl apply -f -
 ```
 
 ## Look for the results of your function execution
 
 ```shell
-kubectl -l 'serving.knative.dev/service=message-dumper' logs -c user-container
+kubectl -l 'serving.knative.dev/service=twitter-dumper' logs -c user-container
 ```
 
 and you should see tweets that match your query string. When I look for knative, I might see things like this:
