@@ -19,6 +19,7 @@ package cloudevents
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -114,7 +115,7 @@ func validateOutParamSignature(fnType reflect.Type) error {
 // of allowed types. If successful, returns the expected in-param type, otherwise panics.
 func validateFunction(fnType reflect.Type) errAndHandler {
 	if fnType.Kind() != reflect.Func {
-		return &failedHandler{err: fmt.Errorf("Must pass a function to handle events")}
+		return &failedHandler{err: errors.New("must pass a function to handle events")}
 	}
 	err := anyError(
 		validateInParamSignature(fnType),
@@ -206,13 +207,11 @@ func respondHTTP(outparams []reflect.Value, fn reflect.Value, w http.ResponseWri
 			w.Write([]byte(`Internal server error`))
 			return
 		}
-		err = Binary.ToHeaders(ec, w.Header())
-		if err != nil {
-			log.Printf("Failed to marshal headers for response: %+v: %s", ec, err)
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(`Internal server error`))
-			return
+		headers := ec.AsHeaders()
+		for k, v := range headers {
+			w.Header()[k] = v
 		}
+
 		w.Write(json)
 		return
 	}
@@ -364,11 +363,13 @@ func (m Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h := m[eventContext.EventType]
+	c := eventContext.AsV01()
+
+	h := m[c.EventType]
 	if h == nil {
-		log.Print("Cloud not find handler for event type", eventContext.EventType)
+		log.Print("Cloud not find handler for event type", c.EventType)
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("Event type %q is not supported", eventContext.EventType)))
+		w.Write([]byte(fmt.Sprintf("Event type %q is not supported", c.EventType)))
 		return
 	}
 
@@ -380,7 +381,7 @@ func (m Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	if h.numIn == 2 {
 		dataPtr, dataArg := allocate(h.dataType)
-		if err := unmarshalEventData(eventContext.ContentType, rawData, dataPtr); err != nil {
+		if err := unmarshalEventData(c.ContentType, rawData, dataPtr); err != nil {
 			log.Print("Failed to parse event data", err)
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte(`Invalid request`))

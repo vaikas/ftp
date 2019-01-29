@@ -5,32 +5,31 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/knative/pkg/signals"
-
 	"github.com/dghubble/go-twitter/twitter"
 	"github.com/dghubble/oauth1"
+	"github.com/kelseyhightower/envconfig"
 
 	"github.com/knative/pkg/cloudevents"
-)
-
-const (
-	consumerKeyKey    = "TWITTER_CONSUMER_KEY"
-	consumerSecretKey = "TWITTER_CONSUMER_SECRET_KEY"
-	accessTokenKey    = "TWITTER_ACCESS_TOKEN"
-	accessSecretKey   = "TWITTER_ACCESS_SECRET"
+	"github.com/knative/pkg/signals"
 )
 
 var (
 	sink  string
 	query string
 )
+
+type EnvConfig struct {
+	ConsumerKey       string `split_words:"true",required:"true"`
+	ConsumerSecretKey string `split_words:"true",required:"true"`
+	AccessToken       string `split_words:"true",required:"true"`
+	AccessSecret      string `split_words:"true",required:"true"`
+}
 
 func init() {
 	flag.StringVar(&sink, "sink", "", "where to sink events to")
@@ -50,14 +49,10 @@ func main() {
 		panic(fmt.Sprintf("failed to create logger: %s", err))
 	}
 
-	consumerKey := os.Getenv(consumerKeyKey)
-	consumerSecret := os.Getenv(consumerSecretKey)
-	accessToken := os.Getenv(accessTokenKey)
-	accessSecret := os.Getenv(accessSecretKey)
-
-	if consumerKey == "" || consumerSecret == "" || accessToken == "" || accessSecret == "" {
-		logger.Error("need to specify all of : consumerKey, consumerSecret, accessToken and accessSecret or no twitter for you")
-		return
+	var s EnvConfig
+	err = envconfig.Process("twitter", &s)
+	if err != nil {
+		logger.Fatal(err.Error())
 	}
 
 	if query == "" {
@@ -65,13 +60,14 @@ func main() {
 		return
 	}
 
+	logger.Info("Conf: ", zap.String("consumerKey", s.ConsumerKey), zap.String("consumerSecretKey", s.ConsumerSecretKey), zap.String("accessToken", s.AccessToken), zap.String("accessSecret", s.AccessSecret))
 	logger.Info("Starting and publishing to sink", zap.String("sink", sink))
 	logger.Info("querying for ", zap.String("query", query))
 
 	publisher := publisher{sinkURI: sink, logger: logger}
 
-	config := oauth1.NewConfig(consumerKey, consumerSecret)
-	token := oauth1.NewToken(accessToken, accessSecret)
+	config := oauth1.NewConfig(s.ConsumerKey, s.ConsumerSecretKey)
+	token := oauth1.NewToken(s.AccessToken, s.AccessSecret)
 	httpClient := config.Client(oauth1.NoContext, token)
 
 	// Twitter client
