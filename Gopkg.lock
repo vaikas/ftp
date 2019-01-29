@@ -58,15 +58,23 @@
   version = "v1.1.0"
 
 [[projects]]
+  digest = "1:edbef42561faa44c19129b68d1e109fbc1647f63239250391eadc8d0e7c9f669"
+  name = "github.com/kelseyhightower/envconfig"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "f611eb38b3875cc3bd991ca91c51d06446afa14c"
+  version = "v1.3.0"
+
+[[projects]]
   branch = "master"
-  digest = "1:dfc918405595100f9fee2602d049bc29fb5a32b0d727de550fb6ad59349cfdc3"
+  digest = "1:5eefabe169bf61de242dbe85d0278e93862c4914fe6d3d534b97c137353fc143"
   name = "github.com/knative/pkg"
   packages = [
     "cloudevents",
     "signals",
   ]
   pruneopts = "UT"
-  revision = "225d11cc1a40c0549701fb037d0eba48ee87dfe4"
+  revision = "b531944062b4f40f4192ddbf155ac9eed34b30ae"
 
 [[projects]]
   digest = "1:3c1a69cdae3501bf75e76d0d86dc6f2b0a7421bc205c0cb7b96b19eed464a34d"
@@ -105,6 +113,7 @@
   input-imports = [
     "github.com/dghubble/go-twitter/twitter",
     "github.com/dghubble/oauth1",
+    "github.com/kelseyhightower/envconfig",
     "github.com/knative/pkg/cloudevents",
     "github.com/knative/pkg/signals",
     "go.uber.org/zap",
