@@ -28,7 +28,7 @@ spec:
       secretKeyRef:
         key: access-secret
         name: twitter-secret
-  image: us.gcr.io/probable-summer-223122/source-7dd4982354a958712ad81ca4a42243dd@sha256:47bd10e3da8d9aa47d2000d1f1809f735155aa58a7c29661b5ccae90f4b292d9
+  image: us.gcr.io/probable-summer-223122/source-7dd4982354a958712ad81ca4a42243dd@sha256:2467ce2dad0f9ec39742832ab3560c48f7546ff3ef227ea7130eba05a031e7be
   sink:
     apiVersion: serving.knative.dev/v1alpha1
     kind: Service
