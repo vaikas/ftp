@@ -3,8 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"strconv"
 	"time"
 
@@ -64,7 +62,12 @@ func main() {
 	logger.Info("Starting and publishing to sink", zap.String("sink", sink))
 	logger.Info("querying for ", zap.String("query", query))
 
-	publisher := publisher{sinkURI: sink, logger: logger}
+	ceClient := cloudevents.NewClient(sink, cloudevents.Builder{
+		EventType: "con.twitter",
+		Source:    "com.twitter",
+	})
+
+	publisher := publisher{ceClient: ceClient, logger: logger}
 
 	config := oauth1.NewConfig(s.ConsumerKey, s.ConsumerSecretKey)
 	token := oauth1.NewToken(s.AccessToken, s.AccessSecret)
@@ -82,8 +85,8 @@ func main() {
 }
 
 type publisher struct {
-	logger  *zap.Logger
-	sinkURI string
+	logger   *zap.Logger
+	ceClient *cloudevents.Client
 }
 
 type simpleTweet struct {
@@ -99,35 +102,8 @@ func (p *publisher) postMessage(tweet *twitter.Tweet) error {
 		eventTime = time.Now()
 	}
 
-	eventCtx := cloudevents.EventContext{
-		CloudEventsVersion: cloudevents.CloudEventsVersion,
-		EventType:          "com.twitter",
-		EventID:            strconv.FormatInt(tweet.ID, 10),
-		EventTime:          eventTime,
-		ContentType:        "application/json",
-		Source:             "com.twitter",
-	}
-
-	req, err := cloudevents.Binary.NewRequest(p.sinkURI, &tweet, eventCtx)
-	if err != nil {
-		p.logger.Info("Failed to MARSHAL: ", zap.Error(err))
-		return err
-	}
-
-	p.logger.Info("Posting tweet: ", zap.String("sinkURI", p.sinkURI), zap.String("user", tweet.User.Name), zap.String("tweet", tweet.Text))
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		// TODO: in general, receive adapters may have to be able to retry for error cases.
-		p.logger.Info("Response Status ", zap.String("response status", resp.Status))
-		body, _ := ioutil.ReadAll(resp.Body)
-		p.logger.Info("response Body:", zap.String("body", string(body)))
-	}
-	return nil
+	return p.ceClient.Send(tweet, cloudevents.V01EventContext{
+		EventID:   strconv.FormatInt(tweet.ID, 10),
+		EventTime: eventTime,
+	})
 }
