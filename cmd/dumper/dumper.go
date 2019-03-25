@@ -18,32 +18,36 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
-	"net/http"
+	"time"
 
-	"github.com/dghubble/go-twitter/twitter"
-	"github.com/knative/pkg/cloudevents"
+	"github.com/cloudevents/sdk-go/pkg/cloudevents"
+	"github.com/cloudevents/sdk-go/pkg/cloudevents/client"
 )
 
-func myFunc(ctx context.Context, tweet *twitter.Tweet) error {
-	// Extract only the Cloud Context from the context because that's
-	// all we care about for this example and the entire context is toooooo much...
-	ec := cloudevents.FromContext(ctx)
-	if ec != nil {
-		log.Printf("Received Cloud Event Context as: %+v", *ec)
-	} else {
-		log.Printf("No Cloud Event Context found")
-	}
-	log.Printf("Got tweet from %q text: %q", tweet.User.Name, tweet.Text)
+type FTPFileEvent struct {
+	Name    string
+	Size    int64
+	ModTime time.Time
+}
 
+func Receive(ctx context.Context, event cloudevents.Event) error {
+	fmt.Printf("Got Event Context: %+v\n", event.Context)
+	var data FTPFileEvent
+	if err := event.DataAs(&data); err != nil {
+		fmt.Printf("Got Data Error: %s\n", err.Error())
+	}
+	fmt.Printf("Got Data: %+v\n", data)
+
+	fmt.Printf("----------------------------\n")
 	return nil
 }
 
 func main() {
-	m := cloudevents.NewMux()
-	err := m.Handle("com.twitter", myFunc)
+	c, err := client.NewDefault()
 	if err != nil {
-		log.Fatalf("Failed to create handler %s", err)
+		log.Fatalf("failed to create client, %v", err)
 	}
-	http.ListenAndServe(":8080", m)
+	log.Fatal(c.StartReceiver(context.Background(), Receive))
 }

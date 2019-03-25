@@ -1,0 +1,29 @@
+---
+apiVersion: sources.eventing.knative.dev/v1alpha1
+kind: ContainerSource
+metadata:
+  annotations:
+    traffic.sidecar.istio.io/includeOutboundIPRanges: INCLUDE_OUTBOUND_IPRANGES
+  name: ftp-watcher
+  namespace: default
+spec:
+  args:
+  - --server=FTP_SERVER
+  - -secure=false
+  - --dir=FTP_DIR_TO_WTCH
+  env:
+  - name: FTP_USER
+    valueFrom:
+      secretKeyRef:
+        key: user
+        name: ftp-secret
+  - name: FTP_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        key: password
+        name: ftp-secret
+  image: us.gcr.io/probable-summer-223122/source-74f3a04b1b7c9dfb4efec658c9499ab6@sha256:5a5255ae102898d3c282822d39e3a3d5a2f54578b700645d6bb9e22bdd0af65a
+  sink:
+    apiVersion: serving.knative.dev/v1alpha1
+    kind: Service
+    name: ftp-dumper

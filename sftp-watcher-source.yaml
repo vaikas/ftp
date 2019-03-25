@@ -1,0 +1,27 @@
+---
+apiVersion: sources.eventing.knative.dev/v1alpha1
+kind: ContainerSource
+metadata:
+  name: sftp-watcher
+  namespace: default
+spec:
+  args:
+  - --server=test.rebex.net:22
+  - -secure=true
+  - --dir=/pub/example
+  env:
+  - name: FTP_USER
+    valueFrom:
+      secretKeyRef:
+        key: user
+        name: sftp-secret
+  - name: FTP_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        key: password
+        name: sftp-secret
+  image: github.com/vaikas-google/ftp/cmd/source
+  sink:
+    apiVersion: serving.knative.dev/v1alpha1
+    kind: Service
+    name: ftp-dumper

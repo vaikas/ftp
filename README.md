@@ -1,57 +1,67 @@
-# Knative`Twitter Source` CRD.
+# Knative`FTP/SFTP Source` CRD.
 
 ## Overview
 
-This repository implements a simple Event Source for wiring Twitter events
-into [Knative Eventing](http://github.com/knative/eventing).
+This repository implements a simple Event Source for looking at
+an FTP / SFTP server and creating notifications for new files
+uploaded into [Knative Eventing](http://github.com/knative/eventing).
 
 ## Details
 
-This uses containersource
+This uses containersource. Until Istio 1.1 you'll need to annotate the
+FTP source with the `traffic.sidecar.istio.io/includeOutboundIPRanges`
+annotation to ensure the source can emit events into the mesh.
 
 ## Prerequisites
 
-1. Create a
-   [Google Cloud project](https://cloud.google.com/resource-manager/docs/creating-managing-projects)
-   and install the `gcloud` CLI and run `gcloud auth login`. This sample will
-   use a mix of `gcloud` and `kubectl` commands. The rest of the sample assumes
-   that you've set the `$PROJECT_ID` environment variable to your Google Cloud
-   project id, and also set your project ID as default using
-   `gcloud config set project $PROJECT_ID`.
+1. Setup [Knative Serving](https://github.com/knative/docs/blob/master/docs/install)
+  This is used for the function that gets subscribed to the new files notifications.
 
-1. Setup [Knative Serving](https://github.com/knative/docs/blob/master/install)
-
-1. Configure [outbound network access](https://github.com/knative/docs/blob/master/serving/outbound-network-access.md)
-
-1. Setup [Knative Eventing](https://github.com/knative/docs/tree/master/eventing)
+1. Configure [outbound network access](https://github.com/knative/docs/blob/master/docs/serving/outbound-network-access.md)
+  **note** you will need to determine the IP range of your cluster. So determine the IP range of your cluster. For example
+  if your IP ranges are: `10.16.0.0/14,10.19.240.0/20` export them like so.
+```shell
+export INCLUDE_OUTBOUND_IPRANGES="10.16.0.0/14,10.19.240.0/20"
+```
+  
+1. Setup [Knative Eventing](https://github.com/knative/docs/tree/master/docs/eventing)
    using the `release.yaml` file. This example does not require GCP.
 
-1. Have Twitter API access keys. [Good instructions on how to get them](https://iag.me/socialmedia/how-to-create-a-twitter-app-in-8-easy-steps/)
+1. Have user/password for the FTP/SFTP server. Only user/password is supported now (PRs accepted ;) )
 
-## Create the function that receives the tweets matching your query
-We're going to launch a service in Knative that gets invoked for each of the tweets
-matching your query term that we'll set up below.
-
+1. Permit the service account the source runs as to read/modify ConfigMaps. This is necessary as the
+   source uses ConfigMaps to store it's state. If you do **not** run as the normal service account default/default
+   as per the instructions below, you will need to modify the following file to modify permissions appropriately. By
+   default the file below will grant default service account in the default namespace rights to Read/Write Configmaps.
+   
 ```shell
-kubectl --namespace default apply -f https://raw.githubusercontent.com/vaikas-google/twitter/master/config/service.yaml
+kubectl --namespace default apply -f https://raw.githubusercontent.com/vaikas-google/ftp/master/config/cm_role.yaml
 ```
 
-## Create a secret with your Twitter secrets
+## Create the function that receives the notifications about new files being uploaded
+We're going to launch a service in Knative that gets invoked for each of the new
+files being uploaded
 
-Modify (or create a file like this) ./secret.yaml and replace TWITTER_* entries with real entries
+```shell
+kubectl --namespace default apply -f https://raw.githubusercontent.com/vaikas-google/ftp/master/config/service.yaml
+```
+
+## Create a secret with your FTP credentials OR with your SFTP credentials
+
+### FTP Credentials
+
+Modify (or create a file like this) ./secret.yaml and replace FTP_* entries with real entries
 for your account and then create the secret:
 
 ```shell
 apiVersion: v1
 kind: Secret
 metadata:
-  name: twitter-secret
+  name: ftp-secret
 type: Opaque
 stringData:
-  consumer-key: TWITTER_CONSUMER_KEY
-  consumer-secret-key: TWITTER_CONSUMER_SECRET_KEY
-  access-token: TWITTER_ACCESS_TOKEN
-  access-secret: TWITTER_ACCESS_SECRET
+  user: FTP_USER
+  password: FTP_PASSWORD
 ```
 
 
@@ -60,20 +70,82 @@ And then create the secret like so:
 kubectl create -f ./secret.yaml
 ```
 
-## Launch the twitter source
-The source expects you to specify a query string that tells what to search for in the sea
-of tweets. For example, if you wanted to look for `knative`, you'd do:
-
+Or you can do the following using checked in files (assuming your username is `myusername` and password is `mypassword`:
 ```shell
-curl https://raw.githubusercontent.com/vaikas-google/twitter/master/config/search-source.yaml | \
-sed "s/QUERY/knative/g" | kubectl apply -f -
+curl https://raw.githubusercontent.com/vaikas-google/ftp/master/config/ftp-secret.yaml | \
+sed "s/FTP_USER/myusername/g" | \
+sed "s/FTP_PASSWORD/mypassword/g" | \
+kubectl apply -f -
 ```
 
-if you want to search for something else, replace knative with the query string you want
-to look for.
+
+### SFTP Credentials
+
+Modify (or create a file like this) ./secret.yaml and replace SFTP_* entries with real entries
+for your account and then create the secret:
+
 ```shell
-curl https://raw.githubusercontent.com/vaikas-google/twitter/master/config/search-source.yaml | \
-sed "s/QUERY/yourquerystring/g" | kubectl apply -f -
+apiVersion: v1
+kind: Secret
+metadata:
+  name: sftp-secret
+type: Opaque
+stringData:
+  user: SFTP_USER
+  password: SFTP_PASSWORD
+```
+
+
+And then create the secret like so:
+```shell
+kubectl create -f ./secret.yaml
+```
+
+Or you can do the following using checked in files (assuming your username is `myusername` and password is `mypassword`:
+```shell
+curl https://raw.githubusercontent.com/vaikas-google/ftp/master/config/sftp-secret.yaml | \
+sed "s/SFTP_USER/myusername/g" | \
+sed "s/SFTP_PASSWORD/mypassword/g" | \
+kubectl apply -f -
+```
+
+## Launch the FTP / SFTP source
+The source needs to communicate to outside FTP / SFTP server and due to Istio side car injection
+it's unable to do unless you specify which the internal networks are (then outbound connection is good).
+So, as stated above, make sure you've set `INCLUDE_OUTBOUND_IPRANGES` env variable to your internal IP range. 
+you also need to specify which directory to watch and of course which server to connect to.
+I've used this for testing myself:
+server: `ftp1.at.proftpd.org`
+dir: /devel/source
+
+**NOTE** for testing with the above server, I used these credentials for my secret.
+user: `anonymous`
+password: `myemailhere.example.com`
+
+So, with those settings, for **FTP**, you'd run:
+
+```shell
+curl https://raw.githubusercontent.com/vaikas-google/ftp/master/config/ftp-watcher-source.yaml | \
+sed "s/INCLUDE_OUTBOUND_IPRANGES/$INCLUDE_OUTBOUND_IPRANGES/g" | \
+sed "s/FTP_SERVER/ftp1.at.proftpd.org/g" | \
+sed "s/fTP_DIR/"/devel/source"/g" | \
+\ kubectl apply -f -
+```
+
+For **SFTP** you have to use the sftp-watcher-source.yaml, so same as before, youd do:
+server: `test.rebex.net
+dir: /pub/example
+
+**NOTE** for testing with the above server, I used these credentials for my secret.
+user: `demo`
+password: password
+
+```shell
+curl https://raw.githubusercontent.com/vaikas-google/ftp/master/config/sftp-watcher-source.yaml | \
+sed "s/INCLUDE_OUTBOUND_IPRANGES/$INCLUDE_OUTBOUND_IPRANGES/g" | \
+sed "s/SFTP_SERVER/test.rebex.net/g" | \
+sed "s/fTP_DIR/"/pub/example"/g" | \
+\ kubectl apply -f -
 ```
 
 ## Look for the results of your function execution
@@ -81,7 +153,7 @@ sed "s/QUERY/yourquerystring/g" | kubectl apply -f -
 You might have to wait some seconds while the elves are busily fetching your tweets, be patient...
 
 ```shell
-kubectl -l 'serving.knative.dev/service=twitter-dumper' logs -c user-container
+kubectl -l 'serving.knative.dev/service=ftp-dumper' logs -c user-container
 ```
 
 and you should see tweets that match your query string. When I look for knative, I might see things like this:

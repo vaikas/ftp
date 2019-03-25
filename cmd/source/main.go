@@ -1,37 +1,50 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
-	"strconv"
+	"os"
 	"time"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/dghubble/go-twitter/twitter"
-	"github.com/dghubble/oauth1"
+	"github.com/google/uuid"
 	"github.com/kelseyhightower/envconfig"
 
-	"github.com/knative/pkg/cloudevents"
+	"github.com/cloudevents/sdk-go/pkg/cloudevents"
+	"github.com/cloudevents/sdk-go/pkg/cloudevents/client"
+	cloudeventshttp "github.com/cloudevents/sdk-go/pkg/cloudevents/transport/http"
+	"github.com/cloudevents/sdk-go/pkg/cloudevents/types"
 	"github.com/knative/pkg/signals"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 var (
-	sink  string
-	query string
+	sink   string
+	dir    string
+	server string
+	secure bool
 )
 
 type EnvConfig struct {
-	ConsumerKey       string `split_words:"true",required:"true"`
-	ConsumerSecretKey string `split_words:"true",required:"true"`
-	AccessToken       string `split_words:"true",required:"true"`
-	AccessSecret      string `split_words:"true",required:"true"`
+	User     string `split_words:"true",required:"true"`
+	Password string `split_words:"true",required:"true"`
 }
 
 func init() {
 	flag.StringVar(&sink, "sink", "", "where to sink events to")
-	flag.StringVar(&query, "query", "", "query string to look for")
+	flag.StringVar(&dir, "dir", ".", "directory to watch files in")
+	flag.StringVar(&server, "server", "", "server to connect to")
+	flag.BoolVar(&secure, "secure", true, "if set to true, use sftp")
+}
+
+type FTPFileEvent struct {
+	Name    string
+	Size    int64
+	ModTime time.Time
 }
 
 func main() {
@@ -48,62 +61,82 @@ func main() {
 	}
 
 	var s EnvConfig
-	err = envconfig.Process("twitter", &s)
+	err = envconfig.Process("ftp", &s)
 	if err != nil {
 		logger.Fatal(err.Error())
 	}
 
-	if query == "" {
-		logger.Error("Need to specify query string")
+	if server == "" {
+		logger.Error("Need to specify server string")
 		return
 	}
 
-	logger.Info("Conf: ", zap.String("consumerKey", s.ConsumerKey), zap.String("consumerSecretKey", s.ConsumerSecretKey), zap.String("accessToken", s.AccessToken), zap.String("accessSecret", s.AccessSecret))
+	logger.Info("Conf: ", zap.String("user", s.User), zap.String("password", s.Password))
 	logger.Info("Starting and publishing to sink", zap.String("sink", sink))
-	logger.Info("querying for ", zap.String("query", query))
+	logger.Info("Using sftp", zap.Bool("sftp", secure))
+	logger.Info("watching ", zap.String("server", server), zap.String("dir", dir))
 
-	ceClient := cloudevents.NewClient(sink, cloudevents.Builder{
-		EventType: "con.twitter",
-		Source:    "com.twitter",
-	})
+	cfg, err := clientcmd.BuildConfigFromFlags("", "")
+	if err != nil {
+		logger.Info("Failed to create k8s config ", zap.Error(err))
+		return
+	}
+	clientSet, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		logger.Info("Failed to create k8s client ", zap.Error(err))
+		return
+	}
 
-	publisher := publisher{ceClient: ceClient, logger: logger}
+	configStore := NewConfigStore("vaikas-test", "default", clientSet.CoreV1().ConfigMaps("default"))
 
-	config := oauth1.NewConfig(s.ConsumerKey, s.ConsumerSecretKey)
-	token := oauth1.NewToken(s.AccessToken, s.AccessSecret)
-	httpClient := config.Client(oauth1.NoContext, token)
+	t, err := cloudeventshttp.New(
+		cloudeventshttp.WithTarget(sink),
+		cloudeventshttp.WithEncoding(cloudeventshttp.BinaryV02),
+	)
 
-	// Twitter client
-	client := twitter.NewClient(httpClient)
+	if err != nil {
+		logger.Info("Failed to create the cloudevents http transport", zap.Error(err))
+		return
+	}
+
+	ceClient, err := client.New(t, client.WithTimeNow())
+	if err != nil {
+		logger.Info("failed to create client", zap.Error(err))
+		return
+	}
+
+	publisher := publisher{ceClient: ceClient, logger: logger, sourceServer: fmt.Sprintf("ftp://%s%s/", server, dir)}
 
 	done := make(chan bool)
 
-	searcher := NewSearcher(client, query, 5, publisher.postMessage, done)
+	searcher := NewWatcher(server, dir, s.User, s.Password, secure, 5, publisher.postMessage, done, configStore)
 	searcher.run()
 	<-stopCh
 	done <- true
 }
 
 type publisher struct {
-	logger   *zap.Logger
-	ceClient *cloudevents.Client
+	logger       *zap.Logger
+	ceClient     client.Client
+	sourceServer string
 }
 
-type simpleTweet struct {
-	user string `json:"user"`
-	text string `json:"text"`
-}
+func (p *publisher) postMessage(fileEntry os.FileInfo) error {
+	source := fmt.Sprintf("%s%s", p.sourceServer, fileEntry.Name())
 
-func (p *publisher) postMessage(tweet *twitter.Tweet) error {
-	eventTime, err := time.Parse(time.RubyDate, tweet.CreatedAt)
-
-	if err != nil {
-		p.logger.Info("Failed to parse created at: ", zap.Error(err))
-		eventTime = time.Now()
+	e := cloudevents.Event{
+		Context: cloudevents.EventContextV02{
+			ID:     uuid.New().String(),
+			Type:   "org.aikas.ftp.fileadded",
+			Source: *types.ParseURLRef(source),
+			Time:   &types.Timestamp{fileEntry.ModTime()},
+		}.AsV02(),
+		Data: FTPFileEvent{Name: fileEntry.Name(), Size: fileEntry.Size(), ModTime: fileEntry.ModTime()},
 	}
 
-	return p.ceClient.Send(tweet, cloudevents.V01EventContext{
-		EventID:   strconv.FormatInt(tweet.ID, 10),
-		EventTime: eventTime,
-	})
+	if _, err := p.ceClient.Send(context.Background(), e); err != nil {
+		p.logger.Info("Failed to send event:", zap.Error(err))
+		return err
+	}
+	return nil
 }

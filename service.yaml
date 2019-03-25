@@ -2,7 +2,7 @@
 apiVersion: serving.knative.dev/v1alpha1
 kind: Service
 metadata:
-  name: twitter-dumper
+  name: ftp-dumper
   namespace: default
 spec:
   runLatest:
@@ -10,4 +10,4 @@ spec:
       revisionTemplate:
         spec:
           container:
-            image: github.com/vaikas-google/twitter/cmd/dumper
+            image: github.com/vaikas-google/ftp/cmd/dumper
