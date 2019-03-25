@@ -6,9 +6,10 @@ metadata:
   namespace: default
 spec:
   args:
-  - --server=FTP_SERVER
+  - --server=SFTP_SERVER
   - -secure=true
-  - --dir=FTP_DIR
+  - --dir=SFTP_DIR
+  - --storename=sftp-store
   env:
   - name: FTP_USER
     valueFrom:
@@ -20,7 +21,7 @@ spec:
       secretKeyRef:
         key: password
         name: sftp-secret
-  image: us.gcr.io/probable-summer-223122/source-74f3a04b1b7c9dfb4efec658c9499ab6@sha256:5a5255ae102898d3c282822d39e3a3d5a2f54578b700645d6bb9e22bdd0af65a
+  image: us.gcr.io/probable-summer-223122/source-74f3a04b1b7c9dfb4efec658c9499ab6@sha256:119587b525aed967045730b24fecea8dc66fedfb21f6027cf67e3dfe81df5a75
   sink:
     apiVersion: serving.knative.dev/v1alpha1
     kind: Service

@@ -6,9 +6,10 @@ metadata:
   namespace: default
 spec:
   args:
-  - --server=FTP_SERVER
+  - --server=SFTP_SERVER
   - -secure=true
-  - --dir=FTP_DIR
+  - --dir=SFTP_DIR
+  - --storename=sftp-store
   env:
   - name: FTP_USER
     valueFrom:

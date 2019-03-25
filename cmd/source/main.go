@@ -23,10 +23,11 @@ import (
 )
 
 var (
-	sink   string
-	dir    string
-	server string
-	secure bool
+	sink      string
+	dir       string
+	server    string
+	secure    bool
+	storename string
 )
 
 type EnvConfig struct {
@@ -38,6 +39,7 @@ func init() {
 	flag.StringVar(&sink, "sink", "", "where to sink events to")
 	flag.StringVar(&dir, "dir", ".", "directory to watch files in")
 	flag.StringVar(&server, "server", "", "server to connect to")
+	flag.StringVar(&storename, "storename", "", "ConfigMap name to use for storing state")
 	flag.BoolVar(&secure, "secure", true, "if set to true, use sftp")
 }
 
@@ -71,8 +73,8 @@ func main() {
 		return
 	}
 
-	logger.Info("Conf: ", zap.String("user", s.User), zap.String("password", s.Password))
 	logger.Info("Starting and publishing to sink", zap.String("sink", sink))
+	logger.Info("Storing state in  ", zap.String("ConfigMap", storename))
 	logger.Info("Using sftp", zap.Bool("sftp", secure))
 	logger.Info("watching ", zap.String("server", server), zap.String("dir", dir))
 
@@ -87,7 +89,7 @@ func main() {
 		return
 	}
 
-	configStore := NewConfigStore("vaikas-test", "default", clientSet.CoreV1().ConfigMaps("default"))
+	configStore := NewConfigStore(storename, "default", clientSet.CoreV1().ConfigMaps("default"))
 
 	t, err := cloudeventshttp.New(
 		cloudeventshttp.WithTarget(sink),

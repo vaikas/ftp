@@ -16,6 +16,7 @@ spec:
   - --server=FTP_SERVER
   - -secure=false
   - --dir=FTP_DIR
+  - --storename=ftp-store
   env:
   - name: FTP_USER
     valueFrom:

@@ -126,9 +126,9 @@ So, with those settings, for **FTP**, you'd run:
 
 ```shell
 curl https://raw.githubusercontent.com/vaikas-google/ftp/master/config/ftp-watcher-source.yaml | \
-sed "s/INCLUDE_OUTBOUND_IPRANGES/$INCLUDE_OUTBOUND_IPRANGES/g" | \
-sed "s/FTP_SERVER/ftp1.at.proftpd.org/g" | \
-sed "s/fTP_DIR/"/devel/source"/g" | \
+sed "s@INCLUDE_OUTBOUND_IPRANGES@$INCLUDE_OUTBOUND_IPRANGES@g" | \
+sed "s@FTP_SERVER@ftp1.at.proftpd.org@g" | \
+sed "s@FTP_DIR@devel/source@g" | \
 kubectl apply -f -
 ```
 
@@ -142,9 +142,9 @@ password: password
 
 ```shell
 curl https://raw.githubusercontent.com/vaikas-google/ftp/master/config/sftp-watcher-source.yaml | \
-sed "s/INCLUDE_OUTBOUND_IPRANGES/$INCLUDE_OUTBOUND_IPRANGES/g" | \
-sed "s/SFTP_SERVER/test.rebex.net/g" | \
-sed "s/fTP_DIR/"/pub/example"/g" | \
+sed "s@INCLUDE_OUTBOUND_IPRANGES@$INCLUDE_OUTBOUND_IPRANGES@g" | \
+sed "s@SFTP_SERVER@ftp1.at.proftpd.org@g" | \
+sed "s@SFTP_DIR@devel/source@g" | \
 kubectl apply -f -
 ```
 
@@ -159,10 +159,27 @@ kubectl -l 'serving.knative.dev/service=ftp-dumper' logs -c user-container
 and you should see tweets that match your query string. When I look for knative, I might see things like this:
 
 ```shell
-2019/01/11 23:03:10 Received Cloud Event Context as: {CloudEventsVersion:0.1 EventID:1083397354315792386 EventTime:2019-01-10 16:17:12 +0000 UTC EventType:com.twitter EventTypeVersion: SchemaURL: ContentType:application/json Source:com.twitter Extensions:map[]}
-2019/01/11 23:03:10 Got tweet from "Serverless Fan" text: "RT @sarbjeetjohal: Lambda comes to your data enter through #knative lambda runtime! We knew it was matter of days for people to spread it l…"
-2019/01/11 23:03:10 Received Cloud Event Context as: {CloudEventsVersion:0.1 EventID:1083397331918106625 EventTime:2019-01-10 16:17:07 +0000 UTC EventType:com.twitter EventTypeVersion: SchemaURL: ContentType:application/json Source:com.twitter Extensions:map[]}
-2019/01/11 23:03:10 Got tweet from "Sarbjeet Johal" text: "Lambda comes to your data enter through #knative lambda runtime! We knew it was matter of days for people to spread… https://t.co/aWo8BEh7GS"
-2019/01/11 23:03:10 Received Cloud Event Context as: {CloudEventsVersion:0.1 EventID:1083393535674601472 EventTime:2019-01-10 16:02:02 +0000 UTC EventType:com.twitter EventTypeVersion: SchemaURL: ContentType:application/json Source:com.twitter Extensions:map[]}
-2019/01/11 23:03:10 Got tweet from "David Metcalfe" text: "RT @RedHatPartners: #RedHat collaborates with @Google, @SAP, @IBM and others on @KnativeProject to deliver hybrid #serverless workloads to…"
+Got Event Context: {SpecVersion:0.2 Type:org.aikas.ftp.fileadded Source:{URL:{Scheme:ftp Opaque: User: Host:ftp1.at.proftpd.orgdevel Path:/source/proftpd-cvs-20190323.tar.gz RawPath: ForceQuery:false RawQuery: Fragment:}} ID:3bf88bb5-db1a-4955-bb38-dbe23a70531b Time:2019-03-23T00:07:57Z SchemaURL: ContentType:0xc0002260a0 Extensions:map[]}
+Got Data: {Name:proftpd-cvs-20190323.tar.gz Size:7571337 ModTime:2019-03-23 00:07:57 +0000 UTC}
+----------------------------
+Got Event Context: {SpecVersion:0.2 Type:org.aikas.ftp.fileadded Source:{URL:{Scheme:ftp Opaque: User: Host:ftp1.at.proftpd.orgdevel Path:/source/proftpd-cvs-20190321.tar.gz RawPath: ForceQuery:false RawQuery: Fragment:}} ID:c2159d70-a5df-4769-a3f9-0c77b3492fea Time:2019-03-21T00:10:55Z SchemaURL: ContentType:0xc0000d5da0 Extensions:map[]}
+Got Data: {Name:proftpd-cvs-20190321.tar.gz Size:7571222 ModTime:2019-03-21 00:10:55 +0000 UTC}
+----------------------------
+Got Event Context: {SpecVersion:0.2 Type:org.aikas.ftp.fileadded Source:{URL:{Scheme:ftp Opaque: User: Host:ftp1.at.proftpd.orgdevel Path:/source/proftpd-cvs-20190318.tar.gz RawPath: ForceQuery:false RawQuery: Fragment:}} ID:d152850a-95b8-4856-a2a6-9bec8ede0a4a Time:2019-03-18T00:07:33Z SchemaURL: ContentType:0xc0000100a0 Extensions:map[]}
+Got Data: {Name:proftpd-cvs-20190318.tar.gz Size:7571369 ModTime:2019-03-18 00:07:33 +0000 UTC}
+----------------------------
+Got Event Context: {SpecVersion:0.2 Type:org.aikas.ftp.fileadded Source:{URL:{Scheme:ftp Opaque: User: Host:ftp1.at.proftpd.orgdevel Path:/source/proftpd-cvs-20190324.tar.gz RawPath: ForceQuery:false RawQuery: Fragment:}} ID:1513477f-5d7e-485a-9357-cfc9277afa55 Time:2019-03-24T00:08:11Z SchemaURL: ContentType:0xc000010180 Extensions:map[]}
+Got Data: {Name:proftpd-cvs-20190324.tar.gz Size:7571258 ModTime:2019-03-24 00:08:11 +0000 UTC}
+----------------------------
+Got Event Context: {SpecVersion:0.2 Type:org.aikas.ftp.fileadded Source:{URL:{Scheme:ftp Opaque: User: Host:ftp1.at.proftpd.orgdevel Path:/source/proftpd-cvs-20190322.tar.gz RawPath: ForceQuery:false RawQuery: Fragment:}} ID:c800a630-6972-463e-9e3c-48c393be3831 Time:2019-03-22T00:08:46Z SchemaURL: ContentType:0xc000226270 Extensions:map[]}
+Got Data: {Name:proftpd-cvs-20190322.tar.gz Size:7571216 ModTime:2019-03-22 00:08:46 +0000 UTC}
+----------------------------
+Got Event Context: {SpecVersion:0.2 Type:org.aikas.ftp.fileadded Source:{URL:{Scheme:ftp Opaque: User: Host:ftp1.at.proftpd.orgdevel Path:/source/proftpd-cvs-20190320.tar.gz RawPath: ForceQuery:false RawQuery: Fragment:}} ID:1cb6445f-45e8-4ecb-a6ad-95b9e78c95bf Time:2019-03-20T00:07:48Z SchemaURL: ContentType:0xc0000d5ea0 Extensions:map[]}
+Got Data: {Name:proftpd-cvs-20190320.tar.gz Size:7571323 ModTime:2019-03-20 00:07:48 +0000 UTC}
+----------------------------
+Got Event Context: {SpecVersion:0.2 Type:org.aikas.ftp.fileadded Source:{URL:{Scheme:ftp Opaque: User: Host:ftp1.at.proftpd.orgdevel Path:/source/proftpd-cvs-20190325.tar.gz RawPath: ForceQuery:false RawQuery: Fragment:}} ID:1fe8f294-3cef-483a-8072-fcdeedced34e Time:2019-03-25T00:08:45Z SchemaURL: ContentType:0xc0000d5f80 Extensions:map[]}
+Got Data: {Name:proftpd-cvs-20190325.tar.gz Size:7571243 ModTime:2019-03-25 00:08:45 +0000 UTC}
+----------------------------
+Got Event Context: {SpecVersion:0.2 Type:org.aikas.ftp.fileadded Source:{URL:{Scheme:ftp Opaque: User: Host:ftp1.at.proftpd.orgdevel Path:/source/proftpd-cvs-20190319.tar.gz RawPath: ForceQuery:false RawQuery: Fragment:}} ID:29c38bb5-3fd1-474a-8205-109af5122a08 Time:2019-03-19T00:06:43Z SchemaURL: ContentType:0xc000010260 Extensions:map[]}
+Got Data: {Name:proftpd-cvs-20190319.tar.gz Size:7571362 ModTime:2019-03-19 00:06:43 +0000 UTC}
 ```

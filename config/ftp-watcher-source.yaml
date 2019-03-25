@@ -11,6 +11,7 @@ spec:
   - --server=FTP_SERVER
   - -secure=false
   - --dir=FTP_DIR
+  - --storename=ftp-store
   env:
   - name: FTP_USER
     valueFrom:
@@ -22,7 +23,7 @@ spec:
       secretKeyRef:
         key: password
         name: ftp-secret
-  image: us.gcr.io/probable-summer-223122/source-74f3a04b1b7c9dfb4efec658c9499ab6@sha256:5a5255ae102898d3c282822d39e3a3d5a2f54578b700645d6bb9e22bdd0af65a
+  image: us.gcr.io/probable-summer-223122/source-74f3a04b1b7c9dfb4efec658c9499ab6@sha256:119587b525aed967045730b24fecea8dc66fedfb21f6027cf67e3dfe81df5a75
   sink:
     apiVersion: serving.knative.dev/v1alpha1
     kind: Service
