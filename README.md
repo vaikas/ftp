@@ -143,8 +143,8 @@ password: password
 ```shell
 curl https://raw.githubusercontent.com/vaikas-google/ftp/master/config/sftp-watcher-source.yaml | \
 sed "s@INCLUDE_OUTBOUND_IPRANGES@$INCLUDE_OUTBOUND_IPRANGES@g" | \
-sed "s@SFTP_SERVER@ftp1.at.proftpd.org@g" | \
-sed "s@SFTP_DIR@devel/source@g" | \
+sed "s@SFTP_SERVER@test.rebex.net:22@g" | \
+sed "s@SFTP_DIR@/pub/example@g" | \
 kubectl apply -f -
 ```
 

@@ -4,6 +4,8 @@ kind: ContainerSource
 metadata:
   name: sftp-watcher
   namespace: default
+  annotations:
+    traffic.sidecar.istio.io/includeOutboundIPRanges: INCLUDE_OUTBOUND_IPRANGES
 spec:
   args:
   - --server=SFTP_SERVER
