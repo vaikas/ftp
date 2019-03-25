@@ -50,7 +50,7 @@ kubectl --namespace default apply -f https://raw.githubusercontent.com/vaikas-go
 
 ### FTP Credentials
 
-Modify (or create a file like this) ./secret.yaml and replace FTP_* entries with real entries
+Modify (or create a file like this) ./config/ftp-secret.yaml and replace FTP_* entries with real entries
 for your account and then create the secret:
 
 ```shell
@@ -81,7 +81,7 @@ kubectl apply -f -
 
 ### SFTP Credentials
 
-Modify (or create a file like this) ./secret.yaml and replace SFTP_* entries with real entries
+Modify (or create a file like this) ./config/sftp-secret.yaml and replace SFTP_* entries with real entries
 for your account and then create the secret:
 
 ```shell
@@ -129,7 +129,7 @@ curl https://raw.githubusercontent.com/vaikas-google/ftp/master/config/ftp-watch
 sed "s/INCLUDE_OUTBOUND_IPRANGES/$INCLUDE_OUTBOUND_IPRANGES/g" | \
 sed "s/FTP_SERVER/ftp1.at.proftpd.org/g" | \
 sed "s/fTP_DIR/"/devel/source"/g" | \
-\ kubectl apply -f -
+kubectl apply -f -
 ```
 
 For **SFTP** you have to use the sftp-watcher-source.yaml, so same as before, youd do:
@@ -145,7 +145,7 @@ curl https://raw.githubusercontent.com/vaikas-google/ftp/master/config/sftp-watc
 sed "s/INCLUDE_OUTBOUND_IPRANGES/$INCLUDE_OUTBOUND_IPRANGES/g" | \
 sed "s/SFTP_SERVER/test.rebex.net/g" | \
 sed "s/fTP_DIR/"/pub/example"/g" | \
-\ kubectl apply -f -
+kubectl apply -f -
 ```
 
 ## Look for the results of your function execution

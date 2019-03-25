@@ -6,9 +6,9 @@ metadata:
   namespace: default
 spec:
   args:
-  - --server=test.rebex.net:22
+  - --server=FTP_SERVER
   - -secure=true
-  - --dir=/pub/example
+  - --dir=FTP_DIR
   env:
   - name: FTP_USER
     valueFrom:
