@@ -27,10 +27,10 @@ This uses [containersource](https://knative.dev/docs/eventing/samples/container-
    For `testing` you could use the [simple-ftp-server](./config/200-ftp.yaml) in config.
 
    ```shell
-    cat config/200-ftp.yaml | \
-    sed "s/FTP_USER/myusername/g" | \
-    sed "s/FTP_PASS/mypassword/g" | \
-    kubectl apply --namespace default -f -
+   cat config/200-ftp.yaml | \
+   sed "s/FTP_USER/myusername/g" | \
+   sed "s/FTP_PASS/mypassword/g" | \
+   kubectl apply --namespace default -f -
    ```
 
 5. Permit the service account the source runs as to read/modify ConfigMaps. This is necessary as the
@@ -39,13 +39,13 @@ This uses [containersource](https://knative.dev/docs/eventing/samples/container-
    default the file below will grant default service account in the default namespace rights to Read/Write Configmaps.
    
    ```shell
-    kubectl --namespace default apply -f config/100-cm_role.yaml
+   kubectl --namespace default apply -f config/100-cm_role.yaml
    ```
 
 ## Create the sink(knative service) that receives the notifications about new files being uploaded
     
 ```shell
-  ko --namespace default apply -f config/300-service.yaml
+ko --namespace default apply -f config/300-service.yaml
 ```
 
 ## Create a secret with your FTP credentials OR with your SFTP credentials
@@ -56,10 +56,10 @@ Modify (or create a file like this) ./config/300-sftp-secret.yaml and replace FT
 for your account and then create the secret:
 
 ```shell
-  cat config/300-sftp-secret.yaml | \
-  sed "s/FTP_USER/myusername/g" | \
-  sed "s/FTP_PASS/mypassword/g" | \
-  kubectl apply --namespace default -f -
+cat config/300-sftp-secret.yaml | \
+sed "s/FTP_USER/myusername/g" | \
+sed "s/FTP_PASS/mypassword/g" | \
+kubectl apply --namespace default -f -
 ```
 
 ## Launch the FTP / SFTP source
@@ -67,11 +67,11 @@ for your account and then create the secret:
 Please checkout the args that can be given to the FTP source in config/400-sftp-watcher-source.yaml.
 
 ```shell
-  cat config/400-sftp-watcher-source.yaml | \
-  sed "s@SFTP_SERVER@$(kubectl get svc my-ftp-service --namespace default -ojsonpath='{.spec.clusterIP}')@g" | \
-  sed "s@SFTP_PORT@$(kubectl get svc my-ftp-service --namespace default -ojsonpath='{.spec.ports[0].port}')@g" | \
-  sed "s@MONITOR_DIRECTORY@/incoming@g" | \
-  ko apply -f -
+cat config/400-sftp-watcher-source.yaml | \
+sed "s@SFTP_SERVER@$(kubectl get svc my-ftp-service --namespace default -ojsonpath='{.spec.clusterIP}')@g" | \
+sed "s@SFTP_PORT@$(kubectl get svc my-ftp-service --namespace default -ojsonpath='{.spec.ports[0].port}')@g" | \
+sed "s@MONITOR_DIRECTORY@/incoming@g" | \
+ko apply -f -
 ```
 
 ## Look for the results of your function execution
@@ -79,7 +79,7 @@ Please checkout the args that can be given to the FTP source in config/400-sftp-
 Load files in ftp server and you will see logs similar to below in ftp-dumper
 
 ```shell
-  kubectl -l 'serving.knative.dev/service=ftp-dumper' logs -c user-container
+kubectl -l 'serving.knative.dev/service=ftp-dumper' logs -c user-container
 ```
 
 and you should see tweets that match your query string. When I look for knative, I might see things like this:
