@@ -1,33 +1,34 @@
-# Knative`FTP/SFTP Source` CRD.
+# Knative `FTP/SFTP Source` CRD.
 
 ## Overview
 
 This repository implements a simple Event Source for looking at
 an FTP / SFTP server and creating notifications for new files
-uploaded into [Knative Eventing](http://github.com/knative/eventing).
+uploaded.
 
 ## Details
 
-This uses containersource. Until Istio 1.1 you'll need to annotate the
-FTP source with the `traffic.sidecar.istio.io/includeOutboundIPRanges`
-annotation to ensure the source can emit events into the mesh.
+This uses [containersource](https://knative.dev/docs/eventing/samples/container-source/). 
 
 ## Prerequisites
 
-1. Setup [Knative Serving](https://github.com/knative/docs/blob/master/docs/install)
-  This is used for the function that gets subscribed to the new files notifications.
+1. Setup [Knative Eventing Core](https://knative.dev/docs/install/any-kubernetes-cluster/#installing-the-eventing-component)
+  CRD's and Core components should suffice.
 
-1. Configure [outbound network access](https://github.com/knative/docs/blob/master/docs/serving/outbound-network-access.md)
-  **note** you will need to determine the IP range of your cluster. So determine the IP range of your cluster. For example
-  if your IP ranges are: `10.16.0.0/14,10.19.240.0/20` export them like so.
+1. Setup [Knative Serving](https://knative.dev/docs/install/any-kubernetes-cluster/#installing-the-serving-component)
+  This step is needed only if sink is Knative service. If it is regular kubernetes service , it is not needed.
+
+1. [ko](https://github.com/google/ko)
+
+1. FTP Server
+  For `testing` you could use the [simple-ftp-server](./config/200-ftp.yaml) in config.
+
 ```shell
-export INCLUDE_OUTBOUND_IPRANGES="10.16.0.0/14,10.19.240.0/20"
+cat config/200-ftp.yaml | \
+sed "s/FTP_USER/myusername/g" | \
+sed "s/FTP_PASS/mypassword/g" | \
+kubectl apply --namespace default -f -
 ```
-  
-1. Setup [Knative Eventing](https://github.com/knative/docs/tree/master/docs/eventing)
-   using the `release.yaml` file. This example does not require GCP.
-
-1. Have user/password for the FTP/SFTP server. Only user/password is supported now (PRs accepted ;) )
 
 1. Permit the service account the source runs as to read/modify ConfigMaps. This is necessary as the
    source uses ConfigMaps to store it's state. If you do **not** run as the normal service account default/default
@@ -35,122 +36,44 @@ export INCLUDE_OUTBOUND_IPRANGES="10.16.0.0/14,10.19.240.0/20"
    default the file below will grant default service account in the default namespace rights to Read/Write Configmaps.
    
 ```shell
-kubectl --namespace default apply -f https://raw.githubusercontent.com/vaikas-google/ftp/master/config/cm_role.yaml
+kubectl --namespace default apply -f config/100-cm_role.yaml
 ```
 
-## Create the function that receives the notifications about new files being uploaded
-We're going to launch a service in Knative that gets invoked for each of the new
-files being uploaded
+## Create the sink(knative service) that receives the notifications about new files being uploaded
 
 ```shell
-kubectl --namespace default apply -f https://raw.githubusercontent.com/vaikas-google/ftp/master/config/service.yaml
+ko apply -f config/300-service.yaml
 ```
 
 ## Create a secret with your FTP credentials OR with your SFTP credentials
 
 ### FTP Credentials
 
-Modify (or create a file like this) ./config/ftp-secret.yaml and replace FTP_* entries with real entries
+Modify (or create a file like this) ./config/300-sftp-secret.yaml and replace FTP_* entries with real entries
 for your account and then create the secret:
 
 ```shell
-apiVersion: v1
-kind: Secret
-metadata:
-  name: ftp-secret
-type: Opaque
-stringData:
-  user: FTP_USER
-  password: FTP_PASSWORD
-```
-
-
-And then create the secret like so:
-```shell
-kubectl create -f ./secret.yaml
-```
-
-Or you can do the following using checked in files (assuming your username is `myusername` and password is `mypassword`:
-```shell
-curl https://raw.githubusercontent.com/vaikas-google/ftp/master/config/ftp-secret.yaml | \
+cat config/300-sftp-secret.yaml | \
 sed "s/FTP_USER/myusername/g" | \
-sed "s/FTP_PASSWORD/mypassword/g" | \
-kubectl apply -f -
-```
-
-
-### SFTP Credentials
-
-Modify (or create a file like this) ./config/sftp-secret.yaml and replace SFTP_* entries with real entries
-for your account and then create the secret:
-
-```shell
-apiVersion: v1
-kind: Secret
-metadata:
-  name: sftp-secret
-type: Opaque
-stringData:
-  user: SFTP_USER
-  password: SFTP_PASSWORD
-```
-
-
-And then create the secret like so:
-```shell
-kubectl create -f ./secret.yaml
-```
-
-Or you can do the following using checked in files (assuming your username is `myusername` and password is `mypassword`:
-```shell
-curl https://raw.githubusercontent.com/vaikas-google/ftp/master/config/sftp-secret.yaml | \
-sed "s/SFTP_USER/myusername/g" | \
-sed "s/SFTP_PASSWORD/mypassword/g" | \
-kubectl apply -f -
+sed "s/FTP_PASS/mypassword/g" | \
+kubectl apply --namespace default -f -
 ```
 
 ## Launch the FTP / SFTP source
-The source needs to communicate to outside FTP / SFTP server and due to Istio side car injection
-it's unable to do unless you specify which the internal networks are (then outbound connection is good).
-So, as stated above, make sure you've set `INCLUDE_OUTBOUND_IPRANGES` env variable to your internal IP range. 
-you also need to specify which directory to watch and of course which server to connect to.
-I've used this for testing myself:
-server: `ftp1.at.proftpd.org`
-dir: /devel/source
-
-**NOTE** for testing with the above server, I used these credentials for my secret.
-user: `anonymous`
-password: `myemailhere.example.com`
-
-So, with those settings, for **FTP**, you'd run:
+ 
+Please checkout the args that can be given to the FTP source in config/400-sftp-watcher-source.yaml.
 
 ```shell
-curl https://raw.githubusercontent.com/vaikas-google/ftp/master/config/ftp-watcher-source.yaml | \
-sed "s@INCLUDE_OUTBOUND_IPRANGES@$INCLUDE_OUTBOUND_IPRANGES@g" | \
-sed "s@FTP_SERVER@ftp1.at.proftpd.org@g" | \
-sed "s@FTP_DIR@devel/source@g" | \
-kubectl apply -f -
-```
-
-For **SFTP** you have to use the sftp-watcher-source.yaml, so same as before, youd do:
-server: `test.rebex.net
-dir: /pub/example
-
-**NOTE** for testing with the above server, I used these credentials for my secret.
-user: `demo`
-password: password
-
-```shell
-curl https://raw.githubusercontent.com/vaikas-google/ftp/master/config/sftp-watcher-source.yaml | \
-sed "s@INCLUDE_OUTBOUND_IPRANGES@$INCLUDE_OUTBOUND_IPRANGES@g" | \
-sed "s@SFTP_SERVER@test.rebex.net:22@g" | \
-sed "s@SFTP_DIR@/pub/example@g" | \
-kubectl apply -f -
+cat config/400-sftp-watcher-source.yaml | \
+sed "s@SFTP_SERVER@$(kubectl get svc my-ftp-service --namespace default -ojsonpath='{.spec.clusterIP}')@g" | \
+sed "s@SFTP_PORT@$(kubectl get svc my-ftp-service --namespace default -ojsonpath='{.spec.ports[0].port}')@g" | \
+sed "s@MONITOR_DIRECTORY@/incoming@g" | \
+ko apply -f -
 ```
 
 ## Look for the results of your function execution
 
-You might have to wait some seconds while the elves are busily fetching your tweets, be patient...
+Load files in ftp server and you will see logs similar to below in ftp-dumper
 
 ```shell
 kubectl -l 'serving.knative.dev/service=ftp-dumper' logs -c user-container

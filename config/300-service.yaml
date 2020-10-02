@@ -1,0 +1,10 @@
+---
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: ftp-dumper
+spec:
+  template:
+    spec:
+      containers:
+        - image: ko://github.com/vaikas/ftp/cmd/dumper

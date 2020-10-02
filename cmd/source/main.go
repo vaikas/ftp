@@ -4,49 +4,66 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
 	"time"
 
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 
-	"github.com/google/uuid"
-	"github.com/kelseyhightower/envconfig"
+	"knative.dev/eventing/pkg/adapter/v2"
+	kubeclient "knative.dev/pkg/client/injection/kube/client"
+	"knative.dev/pkg/injection"
+	"knative.dev/pkg/injection/sharedmain"
+	"knative.dev/pkg/logging"
+	"knative.dev/pkg/signals"
+	"knative.dev/pkg/source"
+	"knative.dev/pkg/system"
+)
 
-	"github.com/cloudevents/sdk-go/pkg/cloudevents"
-	"github.com/cloudevents/sdk-go/pkg/cloudevents/client"
-	cloudeventshttp "github.com/cloudevents/sdk-go/pkg/cloudevents/transport/http"
-	"github.com/cloudevents/sdk-go/pkg/cloudevents/types"
-	"github.com/knative/pkg/signals"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
+const (
+	log_config = `{
+					        "level": "info",
+					        "development": false,
+					        "outputPaths": ["stdout"],
+					        "errorOutputPaths": ["stderr"],
+					        "encoding": "json",
+					        "encoderConfig": {
+					          "timeKey": "ts",
+					          "levelKey": "level",
+					          "nameKey": "logger",
+					          "callerKey": "caller",
+					          "messageKey": "msg",
+					          "stacktraceKey": "stacktrace",
+					          "lineEnding": "",
+					          "levelEncoder": "",
+					          "timeEncoder": "iso8601",
+					          "durationEncoder": "",
+					          "callerEncoder": ""
+					        }
+      					}`
+
+	event_type = "org.aikas.ftp.fileadded"
 )
 
 var (
-	sink      string
-	dir       string
-	server    string
-	secure    bool
-	storename string
+	dir            string
+	sftpServer     string
+	secure         bool
+	storename      string
+	probeFrequency int
 )
 
 type EnvConfig struct {
-	User     string `split_words:"true",required:"true"`
-	Password string `split_words:"true",required:"true"`
+	adapter.EnvConfig
+
+	User     string `envconfig:"FTP_USER" required:"false"`
+	Password string `envconfig:"FTP_PASSWORD" required:"false"`
 }
 
 func init() {
-	flag.StringVar(&sink, "sink", "", "where to sink events to")
 	flag.StringVar(&dir, "dir", ".", "directory to watch files in")
-	flag.StringVar(&server, "server", "", "server to connect to")
+	flag.StringVar(&sftpServer, "sftpServer", "", "server to connect to")
 	flag.StringVar(&storename, "storename", "", "ConfigMap name to use for storing state")
+	flag.IntVar(&probeFrequency, "probeFrequency", 10, "interval in seconds between two probes")
 	flag.BoolVar(&secure, "secure", true, "if set to true, use sftp")
-}
-
-type FTPFileEvent struct {
-	Name    string
-	Size    int64
-	ModTime time.Time
 }
 
 func main() {
@@ -55,90 +72,53 @@ func main() {
 	// set up signals so we handle the first shutdown signal gracefully
 	stopCh := signals.SetupSignalHandler()
 
-	logConfig := zap.NewProductionConfig()
-	logConfig.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-	logger, err := logConfig.Build()
-	if err != nil {
-		panic(fmt.Sprintf("failed to create logger: %s", err))
-	}
+	logger, _ := logging.NewLogger(log_config, "")
+	ctx := logging.WithLogger(context.Background(), logger)
 
-	var s EnvConfig
-	err = envconfig.Process("ftp", &s)
-	if err != nil {
-		logger.Fatal(err.Error())
-	}
+	e := adapter.ConstructEnvOrDie(NewEnvConfig)
+	env := e.(*EnvConfig)
 
-	if server == "" {
+	if sftpServer == "" {
 		logger.Error("Need to specify server string")
 		return
 	}
 
-	logger.Info("Starting and publishing to sink", zap.String("sink", sink))
 	logger.Info("Storing state in  ", zap.String("ConfigMap", storename))
 	logger.Info("Using sftp", zap.Bool("sftp", secure))
-	logger.Info("watching ", zap.String("server", server), zap.String("dir", dir))
+	logger.Info("watching ", zap.String("server", sftpServer), zap.String("dir", dir))
+	logger.Info("Probing frequency  ", zap.Int("probeFrequency", probeFrequency))
 
-	cfg, err := clientcmd.BuildConfigFromFlags("", "")
+	ctx, _ = injection.Default.SetupInformers(ctx, sharedmain.ParseAndGetConfigOrDie())
+
+	configStore := NewConfigStore(storename, env.Namespace, kubeclient.Get(ctx).CoreV1().ConfigMaps(system.Namespace()))
+
+	ceOverrides, err := env.GetCloudEventOverrides()
 	if err != nil {
-		logger.Info("Failed to create k8s config ", zap.Error(err))
-		return
-	}
-	clientSet, err := kubernetes.NewForConfig(cfg)
-	if err != nil {
-		logger.Info("Failed to create k8s client ", zap.Error(err))
-		return
-	}
-
-	configStore := NewConfigStore(storename, "default", clientSet.CoreV1().ConfigMaps("default"))
-
-	t, err := cloudeventshttp.New(
-		cloudeventshttp.WithTarget(sink),
-		cloudeventshttp.WithEncoding(cloudeventshttp.BinaryV02),
-	)
-
-	if err != nil {
-		logger.Info("Failed to create the cloudevents http transport", zap.Error(err))
-		return
+		logger.Error("Error loading cloudevents overrides", zap.Error(err))
 	}
 
-	ceClient, err := client.New(t, client.WithTimeNow())
+	reporter, err := source.NewStatsReporter()
+	if err != nil {
+		logger.Error("error building statsreporter", zap.Error(err))
+	}
+
+	ceClient, err := adapter.NewCloudEventsClientCRStatus(env.GetSink(), ceOverrides, reporter, nil)
+
 	if err != nil {
 		logger.Info("failed to create client", zap.Error(err))
 		return
 	}
 
-	publisher := publisher{ceClient: ceClient, logger: logger, sourceServer: fmt.Sprintf("ftp://%s%s/", server, dir)}
+	publisher := publisher{ceClient: ceClient, logger: logger.Desugar(), sourceServer: fmt.Sprintf("ftp://%s%s/", sftpServer, dir)}
 
 	done := make(chan bool)
 
-	searcher := NewWatcher(server, dir, s.User, s.Password, secure, 5, publisher.postMessage, done, configStore)
-	searcher.run()
+	searcher := NewWatcher(sftpServer, dir, env.User, env.Password, secure, time.Duration(probeFrequency)*time.Second, publisher.postMessage, done, configStore)
+	searcher.run(ctx)
 	<-stopCh
 	done <- true
 }
 
-type publisher struct {
-	logger       *zap.Logger
-	ceClient     client.Client
-	sourceServer string
-}
-
-func (p *publisher) postMessage(fileEntry os.FileInfo) error {
-	source := fmt.Sprintf("%s%s", p.sourceServer, fileEntry.Name())
-
-	e := cloudevents.Event{
-		Context: cloudevents.EventContextV02{
-			ID:     uuid.New().String(),
-			Type:   "org.aikas.ftp.fileadded",
-			Source: *types.ParseURLRef(source),
-			Time:   &types.Timestamp{fileEntry.ModTime()},
-		}.AsV02(),
-		Data: FTPFileEvent{Name: fileEntry.Name(), Size: fileEntry.Size(), ModTime: fileEntry.ModTime()},
-	}
-
-	if _, err := p.ceClient.Send(context.Background(), e); err != nil {
-		p.logger.Info("Failed to send event:", zap.Error(err))
-		return err
-	}
-	return nil
+func NewEnvConfig() adapter.EnvConfigAccessor {
+	return &EnvConfig{}
 }

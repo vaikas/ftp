@@ -22,8 +22,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/cloudevents/sdk-go/pkg/cloudevents"
-	"github.com/cloudevents/sdk-go/pkg/cloudevents/client"
+	cloudevents "github.com/cloudevents/sdk-go/v2"
 )
 
 type FTPFileEvent struct {
@@ -32,7 +31,7 @@ type FTPFileEvent struct {
 	ModTime time.Time
 }
 
-func Receive(ctx context.Context, event cloudevents.Event) error {
+func receive(ctx context.Context, event cloudevents.Event) error {
 	fmt.Printf("Got Event Context: %+v\n", event.Context)
 	var data FTPFileEvent
 	if err := event.DataAs(&data); err != nil {
@@ -45,9 +44,16 @@ func Receive(ctx context.Context, event cloudevents.Event) error {
 }
 
 func main() {
-	c, err := client.NewDefault()
+	ctx := context.TODO()
+
+	c, err := cloudevents.NewDefaultClient()
 	if err != nil {
-		log.Fatalf("failed to create client, %v", err)
+		log.Fatalf("failed to create client: %s", err.Error())
 	}
-	log.Fatal(c.StartReceiver(context.Background(), Receive))
+
+	if err := c.StartReceiver(ctx, receive); err != nil {
+		log.Fatalf("failed to start receiver: %s", err.Error())
+	}
+
+	log.Printf("listening on port %d\n", 8080)
 }

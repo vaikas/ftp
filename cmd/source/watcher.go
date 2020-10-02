@@ -1,14 +1,18 @@
 package main
 
 import (
-	"fmt"
+	"context"
 	"net"
 	"os"
 	"time"
 
-	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 
+	"go.uber.org/zap"
+
+	"knative.dev/pkg/logging"
+
+	"github.com/pkg/sftp"
 	"github.com/secsy/goftp"
 )
 
@@ -17,11 +21,11 @@ type watcher struct {
 	dir       string
 	user      string
 	password  string
-	secure    bool  // use SFTP if true
-	frequency int64 // in seconds
-	handler   func(os.FileInfo) error
+	secure    bool          // use SFTP if true
+	frequency time.Duration // in seconds
+	handler   func(context.Context, os.FileInfo) error
 	stop      chan bool
-	fetcher   func()
+	fetcher   func(context.Context)
 
 	store *configstore
 	// Our copy of the data so we don't have to load the configmap each time, it
@@ -34,29 +38,30 @@ type configdata struct {
 	LastModTime       time.Time
 }
 
-func NewWatcher(server string, dir string, user string, password string, secure bool, frequency int64, handler func(os.FileInfo) error, stop chan bool, store *configstore) *watcher {
+func NewWatcher(server string, dir string, user string, password string, secure bool, frequency time.Duration, handler func(context.Context, os.FileInfo) error, stop chan bool, store *configstore) *watcher {
 	return &watcher{server: server, dir: dir, user: user, password: password, secure: secure, frequency: frequency, handler: handler, stop: stop, store: store}
 }
 
-func (s *watcher) run() {
+func (s *watcher) run(ctx context.Context) {
+	logger := logging.FromContext(ctx)
 	// Initialize the config store that we'll be using to store our state.
-	s.store.Init(&configdata{})
+	s.store.Init(ctx, &configdata{})
 
 	if s.secure {
-		fmt.Println("Using SFTP to fetch files")
+		logger.Info("Using SFTP to fetch files")
 		s.fetcher = s.fetchSFTP
 	} else {
-		fmt.Println("Using FTP to fetch files")
+		logger.Info("Using FTP to fetch files")
 		s.fetcher = s.fetchFTP
 	}
-	tickChan := time.NewTicker(10 * time.Second).C
+	tickChan := time.NewTicker(s.frequency).C
 	go func() {
 		for {
 			select {
 			case <-tickChan:
-				s.fetcher()
+				s.fetcher(ctx)
 			case <-s.stop:
-				fmt.Println("Exiting")
+				logger.Info("Exiting")
 				return
 			}
 		}
@@ -64,14 +69,15 @@ func (s *watcher) run() {
 	}()
 }
 
-func (s *watcher) processFiles(entries []os.FileInfo) {
+func (s *watcher) processFiles(ctx context.Context, entries []os.FileInfo) {
+	logger := logging.FromContext(ctx)
 	var data configdata
-	err := s.store.Load(&data)
+	err := s.store.Load(ctx, &data)
 	if err != nil {
-		fmt.Printf("Failed to load configmap: %s\n", err)
+		logger.Error("Failed to load configmap:", zap.Error(err))
 		return
 	}
-	fmt.Printf("Loaded configdata: %+v\n", data)
+	logger.Info("Loaded configdata:", zap.Any("data", data))
 
 	// This is super simple way to figure out what we've seen so far, we look
 	// at the ModTime and upon finishing the batch of files, we'll stash the
@@ -83,31 +89,31 @@ func (s *watcher) processFiles(entries []os.FileInfo) {
 	highwaterFile := data.LastFileProcessed
 
 	for _, e := range entries {
-		fmt.Printf("Got file: %s - %s\n", e.Name(), e.ModTime())
+		logger.Info("Got file:", zap.String("file", e.Name()), zap.Time("time", e.ModTime()))
 		if e.ModTime().Before(data.LastModTime) {
 			continue
 		}
 		if e.Name() == highwaterFile {
 			continue
 		}
-		fmt.Printf("Found new file: %s\n", e.Name())
-		handlerErr := s.handler(e)
+		logger.Info("Found new file:", zap.String("file", e.Name()))
+		handlerErr := s.handler(ctx, e)
 		if handlerErr != nil {
-			fmt.Printf("Failed to post: %s", err)
+			logger.Error("Failed to post:", zap.Error(err))
 			break
 		}
 		if e.ModTime().After(highwaterMark) {
-			fmt.Printf("Setting HighwaterMark: %s %s", highwaterFile, highwaterMark)
+			logger.Info("Found new file:", zap.String("highwaterFile", highwaterFile), zap.Time("highwaterMark", highwaterMark))
 			highwaterFile = e.Name()
 			highwaterMark = e.ModTime()
 		}
 	}
 	if highwaterMark.After(data.LastModTime) {
-		fmt.Printf("Saving CONFIGMAP\n")
+		logger.Info("Saving CONFIGMAP")
 		newConfigData := configdata{LastFileProcessed: highwaterFile, LastModTime: highwaterMark}
-		err = s.store.Save(&newConfigData)
+		err = s.store.Save(ctx, &newConfigData)
 		if err != nil {
-			fmt.Printf("Failed to save the configdata: %s", err)
+			logger.Error("Failed to save the configdata:", zap.Error(err))
 			return
 		}
 		s.data = newConfigData
@@ -115,31 +121,32 @@ func (s *watcher) processFiles(entries []os.FileInfo) {
 
 }
 
-func (s *watcher) fetchFTP() {
+func (s *watcher) fetchFTP(ctx context.Context) {
+	logger := logging.FromContext(ctx)
 	config := goftp.Config{
 		User:        s.user,
 		Password:    s.password,
 		DisableEPSV: true,
 	}
 
-	fmt.Printf("making plain connection to %q\n", s.server)
+	logger.Info("making plain connection to", zap.String("server", s.server))
 	client, err := goftp.DialConfig(config, s.server)
 	if err != nil {
-		fmt.Printf("Failed to dial: %s", err)
+		logger.Error("Failed to dial:", zap.Error(err))
 		return
 	}
 	defer client.Close()
-
 	entries, err := client.ReadDir(s.dir)
 	if err != nil {
-		fmt.Printf("Failed to ReadDir: %s", err)
+		logger.Error("Failed to ReadDir:", zap.Error(err))
 		return
 	}
 
-	s.processFiles(entries)
+	s.processFiles(ctx, entries)
 }
 
-func (s *watcher) fetchSFTP() {
+func (s *watcher) fetchSFTP(ctx context.Context) {
+	logger := logging.FromContext(ctx)
 	sshConfig := &ssh.ClientConfig{
 		User: s.user,
 		Auth: []ssh.AuthMethod{
@@ -150,25 +157,25 @@ func (s *watcher) fetchSFTP() {
 		},
 	}
 
-	fmt.Printf("making ssh connection to %q\n", s.server)
+	logger.Info("making ssh connection to", zap.String("server", s.server))
 	conn, err := ssh.Dial("tcp", s.server, sshConfig)
 	if err != nil {
-		fmt.Printf("Failed to ssh dial: %s", err)
+		logger.Error("Failed to ssh dial:", zap.Error(err))
 		return
 	}
 
 	sftp, err := sftp.NewClient(conn)
 	if err != nil {
-		fmt.Printf("Failed to create new sftp client: %s", err)
+		logger.Error("Failed to create new sftp client:", zap.Error(err))
 		return
 	}
 	defer sftp.Close()
 
 	entries, err := sftp.ReadDir(s.dir)
 	if err != nil {
-		fmt.Printf("Failed to ReadDir: %s", err)
+		logger.Error("Failed to ReadDir:", zap.Error(err))
 		return
 	}
 
-	s.processFiles(entries)
+	s.processFiles(ctx, entries)
 }
