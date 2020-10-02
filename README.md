@@ -71,7 +71,7 @@ cat config/400-sftp-watcher-source.yaml | \
 sed "s@SFTP_SERVER@$(kubectl get svc my-ftp-service --namespace default -ojsonpath='{.spec.clusterIP}')@g" | \
 sed "s@SFTP_PORT@$(kubectl get svc my-ftp-service --namespace default -ojsonpath='{.spec.ports[0].port}')@g" | \
 sed "s@MONITOR_DIRECTORY@/incoming@g" | \
-ko apply -f -
+ko apply --namespace default -f -
 ```
 
 ## Look for the results of your function execution
@@ -79,7 +79,7 @@ ko apply -f -
 Load files in ftp server and you will see logs similar to below in ftp-dumper
 
 ```shell
-kubectl -l 'serving.knative.dev/service=ftp-dumper' logs -c user-container
+kubectl --namespace default -l 'serving.knative.dev/service=ftp-dumper' logs -c user-container
 ```
 
 and you should see tweets that match your query string. When I look for knative, I might see things like this:
