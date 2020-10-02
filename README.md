@@ -14,38 +14,38 @@ This uses [containersource](https://knative.dev/docs/eventing/samples/container-
 
 1. Setup [Knative Eventing Core](https://knative.dev/docs/install/any-kubernetes-cluster/#installing-the-eventing-component)
   
-  CRD's and Core components should suffice.
+   CRD's and Core components should suffice.
 
-1. Setup [Knative Serving](https://knative.dev/docs/install/any-kubernetes-cluster/#installing-the-serving-component)
+2. Setup [Knative Serving](https://knative.dev/docs/install/any-kubernetes-cluster/#installing-the-serving-component)
   
-  This step is needed only if sink is Knative service. If it is regular kubernetes service , it is not needed.
+   This step is needed only if sink is Knative service. If it is regular kubernetes service , it is not needed.
 
-1. [ko](https://github.com/google/ko)
+3. [ko](https://github.com/google/ko)
 
-1. FTP Server
+4. FTP Server
   
-  For `testing` you could use the [simple-ftp-server](./config/200-ftp.yaml) in config.
+   For `testing` you could use the [simple-ftp-server](./config/200-ftp.yaml) in config.
 
-```shell
-cat config/200-ftp.yaml | \
-sed "s/FTP_USER/myusername/g" | \
-sed "s/FTP_PASS/mypassword/g" | \
-kubectl apply --namespace default -f -
-```
+   ```shell
+    cat config/200-ftp.yaml | \
+    sed "s/FTP_USER/myusername/g" | \
+    sed "s/FTP_PASS/mypassword/g" | \
+    kubectl apply --namespace default -f -
+   ```
 
-1. Permit the service account the source runs as to read/modify ConfigMaps. This is necessary as the
+5. Permit the service account the source runs as to read/modify ConfigMaps. This is necessary as the
    source uses ConfigMaps to store it's state. If you do **not** run as the normal service account default/default
    as per the instructions below, you will need to modify the following file to modify permissions appropriately. By
    default the file below will grant default service account in the default namespace rights to Read/Write Configmaps.
    
-```shell
-kubectl --namespace default apply -f config/100-cm_role.yaml
-```
+   ```shell
+    kubectl --namespace default apply -f config/100-cm_role.yaml
+   ```
 
 ## Create the sink(knative service) that receives the notifications about new files being uploaded
-
+    
 ```shell
-ko apply -f config/300-service.yaml
+  ko --namespace default apply -f config/300-service.yaml
 ```
 
 ## Create a secret with your FTP credentials OR with your SFTP credentials
@@ -56,10 +56,10 @@ Modify (or create a file like this) ./config/300-sftp-secret.yaml and replace FT
 for your account and then create the secret:
 
 ```shell
-cat config/300-sftp-secret.yaml | \
-sed "s/FTP_USER/myusername/g" | \
-sed "s/FTP_PASS/mypassword/g" | \
-kubectl apply --namespace default -f -
+  cat config/300-sftp-secret.yaml | \
+  sed "s/FTP_USER/myusername/g" | \
+  sed "s/FTP_PASS/mypassword/g" | \
+  kubectl apply --namespace default -f -
 ```
 
 ## Launch the FTP / SFTP source
@@ -67,11 +67,11 @@ kubectl apply --namespace default -f -
 Please checkout the args that can be given to the FTP source in config/400-sftp-watcher-source.yaml.
 
 ```shell
-cat config/400-sftp-watcher-source.yaml | \
-sed "s@SFTP_SERVER@$(kubectl get svc my-ftp-service --namespace default -ojsonpath='{.spec.clusterIP}')@g" | \
-sed "s@SFTP_PORT@$(kubectl get svc my-ftp-service --namespace default -ojsonpath='{.spec.ports[0].port}')@g" | \
-sed "s@MONITOR_DIRECTORY@/incoming@g" | \
-ko apply -f -
+  cat config/400-sftp-watcher-source.yaml | \
+  sed "s@SFTP_SERVER@$(kubectl get svc my-ftp-service --namespace default -ojsonpath='{.spec.clusterIP}')@g" | \
+  sed "s@SFTP_PORT@$(kubectl get svc my-ftp-service --namespace default -ojsonpath='{.spec.ports[0].port}')@g" | \
+  sed "s@MONITOR_DIRECTORY@/incoming@g" | \
+  ko apply -f -
 ```
 
 ## Look for the results of your function execution
@@ -79,7 +79,7 @@ ko apply -f -
 Load files in ftp server and you will see logs similar to below in ftp-dumper
 
 ```shell
-kubectl -l 'serving.knative.dev/service=ftp-dumper' logs -c user-container
+  kubectl -l 'serving.knative.dev/service=ftp-dumper' logs -c user-container
 ```
 
 and you should see tweets that match your query string. When I look for knative, I might see things like this:
