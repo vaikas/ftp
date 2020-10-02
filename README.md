@@ -13,14 +13,17 @@ This uses [containersource](https://knative.dev/docs/eventing/samples/container-
 ## Prerequisites
 
 1. Setup [Knative Eventing Core](https://knative.dev/docs/install/any-kubernetes-cluster/#installing-the-eventing-component)
+  
   CRD's and Core components should suffice.
 
 1. Setup [Knative Serving](https://knative.dev/docs/install/any-kubernetes-cluster/#installing-the-serving-component)
+  
   This step is needed only if sink is Knative service. If it is regular kubernetes service , it is not needed.
 
 1. [ko](https://github.com/google/ko)
 
 1. FTP Server
+  
   For `testing` you could use the [simple-ftp-server](./config/200-ftp.yaml) in config.
 
 ```shell
