@@ -1,0 +1,36 @@
+apiVersion: sources.knative.dev/v1alpha2
+kind: ContainerSource
+metadata:
+  name: sftp-watcher
+spec:
+  template:
+    spec:
+      containers:
+        - image: ko://github.com/vaikas/ftp/cmd/source
+          name: ftpsource
+          args:
+          - --sftpServer=SFTP_SERVER:SFTP_PORT
+          - --secure=true
+          - --dir=MONITOR_DIRECTORY
+          - --storename=sftp-store
+          - --probeFrequency=30
+          env:
+          - name: FTP_USER
+            valueFrom:
+              secretKeyRef:
+                key: user
+                name: sftp-secret
+          - name: FTP_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: password
+                name: sftp-secret
+          - name: SYSTEM_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+  sink:
+    ref:
+      apiVersion: serving.knative.dev/v1
+      kind: Service
+      name: ftp-dumper

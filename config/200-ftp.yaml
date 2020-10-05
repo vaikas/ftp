@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-ftp-service
+  labels:
+    app: my-ftp
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 22
+  selector:
+    app: my-ftp
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: my-ftp
+  name: my-ftp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-ftp
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
+      labels:
+        app: my-ftp
+    spec:
+      volumes:
+      - name: dummy-storage
+        emptyDir: {}
+      containers:
+      - name: my-ftp
+        args: ["FTP_USER:FTP_PASS:1001:100:incoming,outgoing"]
+        image: atmoz/sftp
+        ports:
+        - containerPort: 22
+          protocol: TCP
+          name: ftp-server
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - mountPath: "/home/foo/upload"
+          name: dummy-storage
