@@ -112,8 +112,8 @@ jobs:
       run: |
         export GO111MODULE=on
         export GOFLAGS=-mod=vendor
-        ko publish -B ./cmd/ftpsource --push=false --local
-        ko publish -B knative.dev/eventing/test/test_images/recordevents --push=false --local
+        ko publish -B ./cmd/ftpsource
+        ko publish -B knative.dev/eventing/test/test_images/recordevents
     - name: Wait for Ready
       working-directory: ./src/github.com/vaikas/ftp
       run: |
