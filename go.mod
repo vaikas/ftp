@@ -3,9 +3,9 @@ module github.com/vaikas/ftp
 go 1.15
 
 replace (
-	k8s.io/api => k8s.io/api v0.18.15
-	k8s.io/apimachinery => k8s.io/apimachinery v0.18.15
-	k8s.io/client-go => k8s.io/client-go v0.18.15
+	k8s.io/api => k8s.io/api v0.19.7
+	k8s.io/apimachinery => k8s.io/apimachinery v0.19.7
+	k8s.io/client-go => k8s.io/client-go v0.19.7
 )
 
 require (
@@ -20,8 +20,8 @@ require (
 	golang.org/x/tools v0.0.0-20210113180300-f96436850f18 // indirect
 	gopkg.in/check.v1 v1.0.0-20200902074654-038fdea0a05b // indirect
 	gotest.tools v2.2.0+incompatible
-	k8s.io/api v0.18.15
-	k8s.io/apimachinery v0.19.6
+	k8s.io/api v0.19.7
+	k8s.io/apimachinery v0.19.7
 	k8s.io/client-go v11.0.1-0.20190805182717-6502b5e7b1b5+incompatible
 	k8s.io/klog/v2 v2.4.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20201113171705-d219536bb9fd // indirect
