@@ -137,4 +137,4 @@ jobs:
         sed "s/FTP_PASS/mypassword/g" | \
         kubectl apply --namespace default -f -
 
-        go test -count=1 -timeout=5m -tags=e2e ${{ matrix.test-suite }}
+        go test -count=1 -timeout=15m -tags=e2e ${{ matrix.test-suite }}
