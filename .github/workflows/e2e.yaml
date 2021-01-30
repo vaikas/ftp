@@ -32,7 +32,7 @@ jobs:
     env:
       GOPATH: ${{ github.workspace }}
       GO111MODULE: off
-      KO_DOCKER_REPO: ko.local
+      KO_DOCKER_REPO: kind.local
 
     steps:
     - name: Set up Go 1.15.x
@@ -126,7 +126,7 @@ jobs:
       run: |
         set -x
         export GO111MODULE=on
-        export KO_DOCKER_REPO=ko.local
+        echo $KO_DOCKER_REPO
         export USER=myusername
         export PASS=mypassword
         export SYSTEM_NAMESPACE=knative-eventing
