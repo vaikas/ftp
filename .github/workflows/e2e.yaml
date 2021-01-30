@@ -48,7 +48,6 @@ jobs:
         chmod +x ./ko
         sudo mv ko /usr/local/bin
         echo '::endgroup::'
-
     - name: Check out code onto GOPATH
       uses: actions/checkout@v2
       with:
