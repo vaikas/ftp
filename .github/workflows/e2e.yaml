@@ -129,6 +129,7 @@ jobs:
         export KO_DOCKER_REPO=ko.local
         export USER=myusername
         export PASS=mypassword
+        export SYSTEM_NAMESPACE=knative-eventing
         export FTP_URL=$(kubectl get svc my-ftp-service --namespace knative-eventing -ojsonpath='{.spec.clusterIP}'):$(kubectl get svc my-ftp-service --namespace knative-eventing -ojsonpath='{.spec.ports[0].port}')
 
         cat config/300-sftp-secret.yaml | \
