@@ -52,7 +52,13 @@ jobs:
       uses: actions/checkout@v2
       with:
         path: ./src/github.com/vaikas/ftp
-
+    - name: Publish images
+      working-directory: ./src/github.com/vaikas/ftp
+      run: |
+        export GO111MODULE=on
+        export GOFLAGS=-mod=vendor
+        ko publish -B ./cmd/ftpsource --push=false --local
+        ko publish -B knative.dev/eventing/test/test_images/recordevents --push=false --local
     - name: Install KinD
       working-directory: ./src/github.com/vaikas/ftp
       run: |
@@ -108,12 +114,6 @@ jobs:
         sed "s/FTP_USER/myusername/g" | \
         sed "s/FTP_PASS/mypassword/g" | \
         kubectl apply --namespace knative-eventing -f -
-    - name: Publish images
-      working-directory: ./src/github.com/vaikas/ftp
-      run: |
-        export GO111MODULE=on
-        ko publish -B ./cmd/ftpsource --push=false --local
-        ko publish -B knative.dev/eventing/test/test_images/recordevents --push=false --local
     - name: Wait for Ready
       working-directory: ./src/github.com/vaikas/ftp
       run: |
