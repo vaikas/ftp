@@ -26,8 +26,8 @@ func postMessage(path string, client *testlib.Client) {
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
-						Name:  "sftp-publisher",
-						Image: pkgtest.ImagePath("sftp-publisher"),
+						Name:            "sftp-publisher",
+						Image:           pkgtest.ImagePath("sftp-publisher"),
 						ImagePullPolicy: corev1.PullIfNotPresent,
 						Env: []corev1.EnvVar{{
 							Name:  "PATH",

@@ -162,7 +162,7 @@ func NewConfigStore(logger configmap.Logger) *store {
 	}
 }
 
-// Load creates a Config for this store.
+// Load returns the current state of config
 func (s *store) Load() *configstore {
 	return s.UntypedLoad(storeName).(*configstore)
 }
