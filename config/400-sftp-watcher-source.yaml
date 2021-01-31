@@ -33,4 +33,4 @@ spec:
     ref:
       apiVersion: serving.knative.dev/v1
       kind: Service
-      name: cev
+      name: ftp-dumper
