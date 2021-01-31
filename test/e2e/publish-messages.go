@@ -28,6 +28,7 @@ func postMessage(path string, client *testlib.Client) {
 					Containers: []corev1.Container{{
 						Name:  "sftp-publisher",
 						Image: pkgtest.ImagePath("sftp-publisher"),
+						ImagePullPolicy: corev1.PullIfNotPresent,
 						Env: []corev1.EnvVar{{
 							Name:  "PATH",
 							Value: path,

@@ -127,7 +127,6 @@ jobs:
       run: |
         set -x
         export GO111MODULE=on
-        echo $KO_DOCKER_REPO
         export USER=myusername
         export PASS=mypassword
         export SYSTEM_NAMESPACE=knative-eventing
