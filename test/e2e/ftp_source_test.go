@@ -4,13 +4,8 @@ package e2e
 
 import (
 	"context"
-	"net"
 	"os"
 	"testing"
-
-	"github.com/pkg/sftp"
-	"golang.org/x/crypto/ssh"
-	"gotest.tools/assert"
 
 	. "github.com/cloudevents/sdk-go/v2/test"
 	corev1 "k8s.io/api/core/v1"
@@ -124,35 +119,7 @@ func TestFTPSource(t *testing.T) {
 	// wait for all test resources to be ready
 	client.WaitForAllTestResourcesReadyOrFail(ctx)
 
-	postMessage(t, "/incoming/test.txt")
+	postMessage("/incoming/test.txt", client)
 
 	eventTracker.AssertExact(1, recordevents.MatchEvent(matcherGen(cloudEventsSourceName, cloudEventsEventType)))
-}
-
-func postMessage(t *testing.T, path string) {
-	sshConfig := &ssh.ClientConfig{
-		User: os.Getenv("USER"),
-		Auth: []ssh.AuthMethod{
-			ssh.Password(os.Getenv("PASS")),
-		},
-		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
-			return nil
-		},
-	}
-
-	conn, err := ssh.Dial("tcp", os.Getenv("FTP_URL"), sshConfig)
-	if err != nil {
-		assert.NilError(t, err)
-	}
-
-	sftp, err := sftp.NewClient(conn)
-	if err != nil {
-		assert.NilError(t, err)
-	}
-	defer sftp.Close()
-
-	if _, err := sftp.Create(path); err != nil {
-		assert.NilError(t, err)
-		return
-	}
 }

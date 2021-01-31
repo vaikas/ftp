@@ -11,6 +11,7 @@ replace (
 
 require (
 	github.com/cloudevents/sdk-go/v2 v2.3.1
+	github.com/davecgh/go-spew v1.1.1
 	github.com/google/uuid v1.1.2
 	github.com/onsi/gomega v1.10.3 // indirect
 	github.com/pkg/sftp v1.12.0
@@ -20,7 +21,7 @@ require (
 	golang.org/x/mod v0.4.0 // indirect
 	golang.org/x/tools v0.0.0-20210113180300-f96436850f18 // indirect
 	gopkg.in/check.v1 v1.0.0-20200902074654-038fdea0a05b // indirect
-	gotest.tools v2.2.0+incompatible
+	gotest.tools v2.2.0+incompatible // indirect
 	k8s.io/api v0.19.7
 	k8s.io/apimachinery v0.19.7
 	k8s.io/client-go v11.0.1-0.20190805182717-6502b5e7b1b5+incompatible

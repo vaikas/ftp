@@ -98,6 +98,7 @@ github.com/cloudevents/sdk-go/v2/protocol/http
 github.com/cloudevents/sdk-go/v2/test
 github.com/cloudevents/sdk-go/v2/types
 # github.com/davecgh/go-spew v1.1.1
+## explicit
 github.com/davecgh/go-spew/spew
 # github.com/evanphx/json-patch v4.9.0+incompatible
 github.com/evanphx/json-patch
@@ -493,11 +494,6 @@ gopkg.in/yaml.v2
 gopkg.in/yaml.v3
 # gotest.tools v2.2.0+incompatible
 ## explicit
-gotest.tools/assert
-gotest.tools/assert/cmp
-gotest.tools/internal/difflib
-gotest.tools/internal/format
-gotest.tools/internal/source
 # k8s.io/api v0.19.7 => k8s.io/api v0.18.12
 ## explicit
 k8s.io/api/admission/v1

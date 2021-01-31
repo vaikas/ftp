@@ -114,6 +114,7 @@ jobs:
         export GOFLAGS=-mod=vendor
         ko publish -B ./cmd/ftpsource
         ko publish -B knative.dev/eventing/test/test_images/recordevents
+        ko publish -B ./test/test_images/sftp-publisher
     - name: Wait for Ready
       working-directory: ./src/github.com/vaikas/ftp
       run: |
