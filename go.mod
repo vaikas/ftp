@@ -11,7 +11,7 @@ replace (
 
 require (
 	github.com/cloudevents/sdk-go/v2 v2.3.1
-	github.com/davecgh/go-spew v1.1.1
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/google/uuid v1.1.2
 	github.com/onsi/gomega v1.10.3 // indirect
 	github.com/pkg/sftp v1.12.0

@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/davecgh/go-spew/spew"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
@@ -56,10 +55,6 @@ func postMessage(path string, client *testlib.Client) {
 	if err != nil {
 		client.T.Fatalf("Error creating Job: %v", err)
 	}
-
-	// Dump the state of the Job after it's been created so that we can
-	// see the effects of the binding for debugging.
-	client.T.Log("", "job", spew.Sprint(job))
 
 	defer func() {
 		err := client.Kube.BatchV1().Jobs(job.Namespace).Delete(context.Background(), job.Name, metav1.DeleteOptions{})

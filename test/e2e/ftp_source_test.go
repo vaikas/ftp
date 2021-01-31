@@ -51,8 +51,7 @@ func TestFTPSource(t *testing.T) {
 
 	// create event record pod
 	eventTracker, _ := recordevents.StartEventRecordOrFail(ctx, client, recordEventPodName)
-	// create container source
-	// args are the arguments passing to the container, msg is used in the heartbeats image
+	// create ftp source
 	args := []string{
 		"--sftpServer=" + os.Getenv("FTP_URL"),
 		"--secure=true",
