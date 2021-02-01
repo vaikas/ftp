@@ -96,7 +96,7 @@ jobs:
         EOF
         # Create a cluster!
         kind create cluster --config kind.yaml
-    - name: Install Knative Eventing Nightly and FTP Server
+    - name: Install Knative Eventing Nightly
       working-directory: ./src/github.com/vaikas/ftp
       run: |
         set -x
