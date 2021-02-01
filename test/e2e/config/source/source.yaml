@@ -1,0 +1,37 @@
+apiVersion: sources.knative.dev/v1beta1
+kind: ContainerSource
+metadata:
+  name: sftp-watcher
+  namespace: {{ .namespace }}
+spec:
+  template:
+    spec:
+      containers:
+      - image: ko://github.com/vaikas/ftp/cmd/ftpsource
+        name: ftpsource
+        args:
+        - --sftpServer=my-ftp-service.{{ .namespace }}.svc.cluster.local:22
+        - --secure=true
+        - --dir=/incoming
+        - --storename=sftp-store
+        - --probeFrequency=5
+        env:
+        - name: FTP_USER
+          valueFrom:
+            secretKeyRef:
+              key: user
+              name: sftp-secret
+        - name: FTP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: sftp-secret
+        - name: SYSTEM_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+  sink:
+    ref:
+      apiVersion: serving.knative.dev/v1
+      kind: Service
+      name: recorder

@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: producer
+  namespace: {{ .namespace }}
+spec:
+  restartPolicy: Never
+  containers:
+    - name: producer
+      image: ko://github.com/vaikas/ftp/test/e2e/cmd/sftp-publisher
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: COUNT
+          value: '{{ .producerCount }}'
+        - name: FTP_USER
+          valueFrom:
+            secretKeyRef:
+              key: user
+              name: sftp-secret
+        - name: FTP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: sftp-secret
+        - name: FTP_URL
+          value: my-ftp-service.{{ .namespace }}.svc.cluster.local:22

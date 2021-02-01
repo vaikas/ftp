@@ -5,7 +5,7 @@ on:
     branches: [ 'master']
 
   push:
-    branches: [ 'master' ]
+    branches: [ 'local-version' ]
 
 jobs:
 
@@ -102,39 +102,10 @@ jobs:
         set -x
         kubectl apply -f https://storage.googleapis.com/knative-nightly/eventing/latest/eventing-crds.yaml
         kubectl apply -f https://storage.googleapis.com/knative-nightly/eventing/latest/eventing-core.yaml
-
-        cat config/200-ftp.yaml | \
-        sed "s/FTP_USER/myusername/g" | \
-        sed "s/FTP_PASS/mypassword/g" | \
-        kubectl apply --namespace knative-eventing -f -
-    - name: Publish images
-      working-directory: ./src/github.com/vaikas/ftp
-      run: |
-        export GO111MODULE=on
-        export GOFLAGS=-mod=vendor
-        ko publish -B ./cmd/ftpsource
-        ko publish -B knative.dev/eventing/test/test_images/recordevents
-        ko publish -B ./test/test_images/sftp-publisher
-    - name: Wait for Ready
-      working-directory: ./src/github.com/vaikas/ftp
-      run: |
-        echo Waiting for Pods to become ready.
-        kubectl get pods --all-namespaces
-        kubectl wait pod --for=condition=Ready --timeout=180s -n knative-eventing -l '!job-name'
-        kubectl get pods --all-namespaces
     - name: Run e2e Tests
       working-directory: ./src/github.com/vaikas/ftp
       run: |
         set -x
         export GO111MODULE=on
-        export USER=myusername
-        export PASS=mypassword
-        export SYSTEM_NAMESPACE=knative-eventing
-        export FTP_URL=$(kubectl get svc my-ftp-service --namespace knative-eventing -ojsonpath='{.spec.clusterIP}'):$(kubectl get svc my-ftp-service --namespace knative-eventing -ojsonpath='{.spec.ports[0].port}')
 
-        cat config/300-sftp-secret.yaml | \
-        sed "s/FTP_USER/myusername/g" | \
-        sed "s/FTP_PASS/mypassword/g" | \
-        kubectl apply --namespace default -f -
-
-        go test -count=1 -timeout=15m -tags=e2e ${{ matrix.test-suite }}
+        go test -v -race -count=1 -timeout=15m -tags=e2e ./test/e2e/... -run 'TestSource.*'

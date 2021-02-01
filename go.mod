@@ -3,10 +3,9 @@ module github.com/vaikas/ftp
 go 1.15
 
 replace (
-	k8s.io/api => k8s.io/api v0.18.12
-	k8s.io/apimachinery => k8s.io/apimachinery v0.18.12
-	k8s.io/client-go => k8s.io/client-go v0.18.12
-	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20200410145947-61e04a5be9a6
+	k8s.io/api => k8s.io/api v0.19.7
+	k8s.io/apimachinery => k8s.io/apimachinery v0.19.7
+	k8s.io/client-go => k8s.io/client-go v0.19.7
 )
 
 require (
@@ -24,9 +23,10 @@ require (
 	gotest.tools v2.2.0+incompatible // indirect
 	k8s.io/api v0.19.7
 	k8s.io/apimachinery v0.19.7
-	k8s.io/client-go v11.0.1-0.20190805182717-6502b5e7b1b5+incompatible
+	k8s.io/client-go v11.0.1-0.20190805182717-6502b5e7b1b5+incompatible // indirect
 	k8s.io/klog/v2 v2.4.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20210113233702-8566a335510f // indirect
 	knative.dev/eventing v0.20.1
 	knative.dev/pkg v0.0.0-20210107022335-51c72e24c179
+	knative.dev/reconciler-test v0.0.0-20210108100436-db4d65735605
 )
