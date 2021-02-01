@@ -47,7 +47,7 @@ spec:
       containers:
       - name: my-ftp
         args: ["myusername:mypassword:1001:100:incoming,outgoing"]
-        image: docker.repo1.uhc.com/atmoz/sftp
+        image: atmoz/sftp
         ports:
         - containerPort: 22
           protocol: TCP
