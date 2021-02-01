@@ -45,7 +45,7 @@ func TestMain(m *testing.M) {
 // TestSourceDirect makes sure a source delivers events to Sink.
 func TestSourceDirect(t *testing.T) {
   t.Parallel()
-
+  
   ctx, env := global.Environment(
     knative.WithKnativeNamespace(system.Namespace()),
     knative.WithLoggingConfig,

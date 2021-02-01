@@ -10,9 +10,6 @@ import (
 	"github.com/vaikas/ftp/test/e2e/config/sourceproducer"
 	"knative.dev/reconciler-test/pkg/eventshub"
 	"knative.dev/reconciler-test/pkg/feature"
-
-
-	_ "knative.dev/pkg/system/testing"
 )
 
 func DirectSourceTest() *feature.Feature {
