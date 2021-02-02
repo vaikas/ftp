@@ -6,7 +6,7 @@ spec:
   template:
     spec:
       containers:
-        - image: ko://github.com/vaikas/ftp/cmd/source
+        - image: ko://github.com/vaikas/ftp/cmd/ftpsource
           name: ftpsource
           args:
           - --sftpServer=SFTP_SERVER:SFTP_PORT
