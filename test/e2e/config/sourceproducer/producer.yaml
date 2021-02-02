@@ -12,6 +12,8 @@ spec:
       env:
         - name: COUNT
           value: '{{ .producerCount }}'
+        - name: PATH
+          value: '{{ .path }}'
         - name: FTP_USER
           valueFrom:
             secretKeyRef:

@@ -17,7 +17,7 @@ func init() {
 
 func Install() feature.StepFn {
   return func(ctx context.Context, t *testing.T) {
-    if _, err := manifest.InstallLocalYaml(ctx, map[string]interface{}{"producerCount": 5}); err != nil {
+    if _, err := manifest.InstallLocalYaml(ctx, map[string]interface{}{"producerCount": 5, "path": "/incoming"}); err != nil {
       t.Fatal(err)
     }
   }
