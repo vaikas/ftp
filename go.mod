@@ -6,12 +6,12 @@ replace (
 	k8s.io/api => k8s.io/api v0.19.7
 	k8s.io/apimachinery => k8s.io/apimachinery v0.19.7
 	k8s.io/client-go => k8s.io/client-go v0.19.7
-	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20200805222855-6aeccd4b50c6
 )
 
 require (
 	github.com/cloudevents/sdk-go/v2 v2.3.1
 	github.com/google/uuid v1.1.2
+	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/onsi/gomega v1.10.3 // indirect
 	github.com/pkg/sftp v1.12.0
 	github.com/secsy/goftp v0.0.0-20200609142545-aa2de14babf4
